@@ -99,14 +99,6 @@ End With
 
 End Function
 
-Sub testutility()
-
-Debug.Print UtilityIndex(64, 0, "White", 3, 0, 1, False, _
-      False, False, False, False, False, 23)
-
-
-End Sub
-
 Function UtilityIndex(Age As Single, Female As Boolean, Race As String, Income As Double, SmokeStatus As Boolean, _
 PhysicalActivity As Boolean, Asthma As Boolean, Hypertension As Boolean, Diabetes As Boolean, CHD As Boolean, Stroke As Boolean, _
 Emphysema As Boolean, BMI As Single) As Single

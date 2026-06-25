@@ -29,8 +29,6 @@ Sheets("Template").Visible = True
     ' Delete table if present
             On Error Resume Next
             
-            Debug.Print Range("TabSheetName").Rows.Count
-            
             If Err = 1004 Then
 
             Else

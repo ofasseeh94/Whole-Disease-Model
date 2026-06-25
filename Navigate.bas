@@ -48,9 +48,6 @@ On Error Resume Next
     Application.CommandBars("SheetMenu").Delete
     Set PopupMenu = CommandBars.Add("SheetMenu", msoBarPopup, , True)
     
-    Debug.Print UBound(Sheets("Template").Range("main.menu").Value) - 1
-    
-    
     'Add four main menus.
       For i = 1 To UBound(Sheets("Template").Range("main.menu").Value) - 1
             

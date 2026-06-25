@@ -19,13 +19,13 @@ Dim risk_score As Boolean
 
 With patient
     risk = Application.WorksheetFunction.Sum(Abs(.Hypertension), Abs(.DLP), Abs(.smoking), Abs(.BMI >= 30))
-    
+
     If risk >= 2 Then risk_score = True
-    
+
     If .CHD = True Or .MI = True Or .Stroke = True Or .PVD = True Or risk_score = True Then
-      
+
       ASCVD_check = True
-      .ASCVD = True
+ 
       
     End If
     
@@ -67,14 +67,15 @@ mu = 25.1067 _
 
           sigma = Exp(-0.4212 + 0 * mu)
           
-          U = (Log(1) - mu) / sigma
+          U = (Log(4) - mu) / sigma
           
           ProbStroke = 1 - Exp(-Exp(U))
+          ProbStroke = 1 - (1 - ProbStroke) ^ (1 / 4)
       
           'adjusting the risk of stroke to BMI
           'source: Liu X, et al., A J-shaped relation of BMI and stroke: Systematic review and doseeresponse metaanalysis of 4.43 million participants, Nutrition, Metabolism & Cardiovascular Diseases (2018), https://doi.org/10.1016/ j.numecd.2018.07.004
           'the reported RR data was parametrized using curve expert professional to produce this equation
-          ProbStroke = ProbStroke * (2.44677054944366 + 1.45708742314377 * Cos(6.85415964516995E-02 * .BMI + 1.69241280922106))
+          'ProbStroke = ProbStroke * (2.44677054944366 + 1.45708742314377 * Cos(6.85415964516995E-02 * .BMI + 1.69241280922106))
 
       
       'Adjust TC and HDL from mg/dl to mmol/L
@@ -114,6 +115,46 @@ mu = 25.1067 _
        '     End If
             
      ' End If
+'UKPDS 68 EQUATION: Patients must be diabetic
+'    Dim lambda As Double
+'    Dim rho As Double
+'    Dim xb As Double
+'    Dim integratedHazard As Double
+'    Dim AgeInp As Double, HbA1CInp As Double, SBPInp As Double, TOTALHDL As Double
+'
+'
+'    ' Weibull parameters for MI
+'    lambda = -7.163
+'    rho = 1.497
+'
+'    ' Apply UKPDS variable transformations
+'    AgeInp = .DM_Diagnosis_Age - 52.59
+'    HbA1CInp = .HbA1C - 7.09
+'    SBPInp = (.SBP - 135.09) / 10
+'    TOTALHDL = (.TC / .HDL - 5.23)
+'
+'    ' Linear predictor for MI
+'    xb = lambda _
+'        + 0.085 * AgeInp _
+'        - 0.516 * Abs(.Female) _
+'        + 0.355 * Abs(.smoking) _
+'        + 0.128 * HbA1CInp _
+'        + 0.276 * SBPInp _
+'        + 1.19 * TOTALHDL _
+'        + 1.742 * Abs(.HF) _
+'        + 1.428 * Abs(.AF)
+
+'    ' Integrated hazard from year t to t+1
+'    integratedHazard = Exp(xb) * (((2) ^ rho) - (1 ^ rho))
+'
+'    ' Annual probability
+'    ProbStroke = 1 - Exp(-integratedHazard)
+'
+'      End With
+
+'ProbMI = Temp
+
+
 
 End With
 
@@ -234,8 +275,7 @@ Dim OA_risk As Integer
 
 
 With patient
-  Debug.Print "Age:"; .Age
-  Debug.Print "BMI:"; .BMI
+
       Select Case .occupational_risk_OA
             Case Is = "never":            OA_risk = 0
             Case Is = "seldom":           OA_risk = 1
@@ -282,12 +322,12 @@ Dim U As Double
 
 
           sigma = Exp(3.4587 + -0.8647 * mu)
-          
-          U = (Log(1) - mu) / sigma
-          
+
+          U = (Log(4) - mu) / sigma
+
           ProbMI = 1 - Exp(-Exp(U))
 
-
+          ProbMI = 1 - (1 - ProbMI) ^ (1 / 4)
 
             'T = .Age - .DM_Diagnosis_Age
             'LipidRatio = .TC / .HDL
@@ -307,6 +347,44 @@ Dim U As Double
             'If .DM = True Then
             'Temp = Temp * (1.183 ^ (.HbA1C - 6.72))
             'End If
+            
+            
+    ' UKPDS 68 - Table 2: patients MUST be diabetic
+    ' Equation 2: Myocardial infarction (MI)
+    ' Weibull model annual probability
+
+'    Dim lambda As Double
+'    Dim rho As Double
+'    Dim xb As Double
+'    Dim integratedHazard As Double
+'    Dim AgeInp As Double, HbA1CInp As Double, SBPInp As Double
+'
+'    ' Weibull parameters for MI
+'    lambda = -4.977
+'    rho = 1.257
+'
+'    ' Apply UKPDS variable transformations
+'    AgeInp = .DM_Diagnosis_Age - 52.59
+'    HbA1CInp = .HbA1C - 7.09
+'    SBPInp = (.SBP - 135.09) / 10
+'
+'    ' Linear predictor for MI
+'    xb = lambda _
+'        + 0.055 * AgeInp _
+'        - 0.826 * Abs(.Female) _
+'        - 1.312 * 0 _
+'        + 0.346 * Abs(.smoking) _
+'        + 0.118 * HbA1CInp _
+'        + 0.101 * SBPInp _
+'        + 1.19 * Log((.TC / .HDL)) _
+'        + 0.914 * Abs(.CHD) _
+'        + 1.558 * Abs(.HF)
+'
+'    ' Integrated hazard from year t to t+1
+'    integratedHazard = Exp(xb) * (((2) ^ rho) - (1 ^ rho))
+'
+'    ' Annual probability
+'    ProbMI = 1 - Exp(-integratedHazard)
             
       End With
 
@@ -328,9 +406,11 @@ With patient
 
           sigma = Exp(0.9341 + -0.2825 * mu)
           
-          U = (Log(1) - mu) / sigma
+          U = (Log(4) - mu) / sigma
           
           ProbCHD = 1 - Exp(-Exp(U))
+          
+          ProbCHD = 1 - (1 - ProbCHD) ^ (1 / 4)
 
 End With
 
@@ -365,34 +445,34 @@ End Function
 Function ProbDLP(patient As patient) As Double
 'Source: Yang X, Xu C, Wang Y, Cao C, Qin T, Zhan S, et al. Risk prediction model of dyslipidaemia over a 5-year period based on the Taiwan MJ health check-up longitudinal database. Lipids in Health and Disease [Internet]. 2018 Nov 17 [cited 2023 Dec 26];17(1). Available from: https://lipidworld.biomedcentral.com/articles/10.1186/s12944-018-0906-2 Print
 With patient
-
-If .Age < 35 Then
-
-      ProbDLP = 0
-
-Else
-
-      Dim Sex_coff As Byte
-      
-      If .Female = True Then
-            
-            Sex_coff = 2
-      
-      Else
-            
-            Sex_coff = 1
-      
-      End If
-      
-      ProbDLP = -5.2337 + Sex_coff * -0.229 + Abs(.family_history_DM) * 0.082 + .BMI * 0.0542 + .TG * 0.016 + .HDL * -0.00976 + .LDL * 0.0134
-
-      'Transform the LogitP to probability over 5 years
-      ProbDLP = CDbl(Exp(ProbDLP) / (1 + Exp(ProbDLP)))
-      'Calculate the annual probability
-      
-      ProbDLP = 1 - (1 - ProbDLP) ^ (1 / 5)
-
-End If
+'this equation was not used as the lower part is used since it is more clinically defenisble and more clinically plausible
+'If .Age < 35 Then
+'
+'      ProbDLP = 0
+'
+'Else
+'
+'      Dim Sex_coff As Byte
+'
+'      If .Female = True Then
+'
+'            Sex_coff = 2
+'
+'      Else
+'
+'            Sex_coff = 1
+'
+'      End If
+'
+'      ProbDLP = -5.2337 + Sex_coff * -0.229 + Abs(.family_history_DM) * 0.082 + .BMI * 0.0542 + .TG * 0.016 + .HDL * -0.00976 + .LDL * 0.0134
+'
+'      Transform the LogitP to probability over 5 years
+'      ProbDLP = CDbl(Exp(ProbDLP) / (1 + Exp(ProbDLP)))
+'      Calculate the annual probability
+'
+'      ProbDLP = 1 - (1 - ProbDLP) ^ (1 / 5)
+'
+'End If
 
 'source:Combination between Clinical expert opinion and reference: Marzieh Nikparvar, Mohadeseh Khaladeh, Yousefi H, Akbar Etebarian, Behzad Moayedi, Masoumeh Kheirandish. Dyslipidemia and its associated factors in southern Iranian women, Bandare-Kong Cohort study, a cross-sectional survey. Scientific Reports [Internet]. 2021 Apr 28 [cited 2023 Dec 28];11(1). Available from: https://www.ncbi.nlm.nih.gov/pmc/articles/PMC8080669/ Print
 If .ASCVD = True Then
@@ -454,22 +534,25 @@ With patient
 
 If .Retino = True And .DM = True Then
             
-      DM_duration = .Age - .DM_Diagnosis_Age
+'      DM_duration = .Age - .DM_Diagnosis_Age
       
 'Source: Brown JB, Russell A, Chan W, Pedula K, Aickin M. The global diabetes model: user friendly version 3.0. Diabetes research and clinical practice. 2000 Nov 1;50:S15-46.
-            
-                        DM_duration = .Age - .DM_Diagnosis_Age
-                        If DM_duration >= 15 Then
-                            ProbMA = 0.08
-                         ElseIf DM_duration >= 10 Then
-                            ProbMA = 0.092
-                        ElseIf DM_duration <= 5 Then
-                            ProbMA = 0.095
-                        Else
-                            ProbMA = 0.047
-                        End If
+'
+'                        DM_duration = .Age - .DM_Diagnosis_Age
+'                        If DM_duration >= 15 Then
+'                            ProbMA = 0.08
+'                         ElseIf DM_duration >= 10 Then
+'                            ProbMA = 0.092
+'                        ElseIf DM_duration <= 5 Then
+'                            ProbMA = 0.095
+'                        Else
+'                            ProbMA = 0.047
+'                        End If
 
-' to adjust for hba1c
+'This is annual risk based on calculations from Martín-Merino E, Fortuny J, Rivero-Ferrer E, García-Rodríguez LA. Incidence of retinal complications in a cohort of newly diagnosed diabetic patients. PLoS One. 2014 Jun 25;9(6):e100283.
+' The calculations are in the excel file named Macular Edema in the folder Macular Edema calculations
+ProbMA = 0.00293
+' to adjust for hba1c, Source:Brown JB, Russell A, Chan W, Pedula K, Aickin M. The global diabetes model: user friendly version 3.0. Diabetes research and clinical practice. 2000 Nov 1;50:S15-46.
 ProbMA = ProbMA * (.HbA1C / 10) ^ 1.2
 
 Else
@@ -538,25 +621,150 @@ End With
 
 
 End Function
-Function ProbUlcer(patient As patient)
+Function ProbUlcer(patient As patient) As Double
 
-With patient
+    '-------------------------------------------------------------------------
+    ' Purpose:
+    '   Estimate the annual probability of developing a diabetic foot ulcer
+    '   for a patient with diabetes.
+    '
+    ' Approach:
+    '   1. Use the published logistic regression equation to estimate the
+    '      patient's cumulative probability of diabetic foot ulcer.
+    '   2. Convert the cumulative probability into an annual risk for the
+    '      most recent year using a Weibull-based increasing-risk assumption.
+    '
+    ' Source for logistic regression model:
+    '   Ahmadi, S. A. Y., Shirzadegan, R., Mousavi, N., Farokhi, E.,
+    '   Soleimaninejad, M., & Jafarzadeh, M. (2021).
+    '   Designing a Logistic Regression Model for a Dataset to Predict Diabetic
+    '   Foot Ulcer in Diabetic Patients: High-Density Lipoprotein (HDL)
+    '   Cholesterol Was the Negative Predictor.
+    '   Journal of Diabetes Research, 2021, 5521493.
+    '   https://doi.org/10.1155/2021/5521493
+    '-------------------------------------------------------------------------
 
-      If .DM = True Then
-      
-            'Source:Ahmadi, S. A. Y., Shirzadegan, R., Mousavi, N., Farokhi, E., Soleimaninejad, M., & Jafarzadeh, M. (2021). Designing a Logistic Regression Model for a Dataset to Predict Diabetic Foot Ulcer in Diabetic Patients: High-Density Lipoprotein (HDL) Cholesterol Was the Negative Predictor. Journal of diabetes research, 2021, 5521493. https://doi.org/10.1155/2021/5521493
-            ProbUlcer = -12.98725 + 0.1331305 * .Age + 0.1944625 * .BMI + 0.0108864 * .FBS + -0.1184257 * .HDL + 0.9855977 * Abs(.Insulin)
-            ProbUlcer = Exp(ProbUlcer)
-            ProbUlcer = ProbUlcer / (1 + ProbUlcer)
-            ProbUlcer = 1 - (1 - ProbUlcer) ^ (1 / (73 - 18))
+    Dim DiabetesDuration As Double
+    Dim LinearPredictor As Double
+    Dim CumulativeRisk As Double
+    Dim WeibullShape As Double
 
-      Else
-      
+    With patient
+
+        '---------------------------------------------------------------------
+        ' The ulcer risk is only estimated for patients with diabetes.
+        ' If the patient does not have diabetes, the probability of diabetic
+        ' foot ulcer is set to zero.
+        '---------------------------------------------------------------------
+        If .DM = True Then
+
+            '-----------------------------------------------------------------
+            ' Calculate diabetes duration as:
+            '   Current age - age at diabetes diagnosis
+            '
+            ' This represents the number of years the patient has lived with
+            ' diabetes.
+            '-----------------------------------------------------------------
+            DiabetesDuration = .Age - .DM_Diagnosis_Age
+
+            '-----------------------------------------------------------------
+            ' Avoid a diabetes duration of zero.
+            '
+            ' The Weibull-based annual risk equation requires division by
+            ' DiabetesDuration. Therefore, if duration is zero, we assume a
+            ' minimum duration of one year.
+            '-----------------------------------------------------------------
+            If DiabetesDuration = 0 Then DiabetesDuration = 1
+
+            '-----------------------------------------------------------------
+            ' Weibull shape parameter.
+            '
+            ' A value of 2 assumes that the instantaneous risk of diabetic foot
+            ' ulcer increases over diabetes duration.
+            '
+            ' Interpretation:
+            '   WeibullShape = 1   -> constant risk over time
+            '   WeibullShape > 1   -> increasing risk over time
+            '   WeibullShape < 1   -> decreasing risk over time
+            '
+            ' Here, WeibullShape = 2 is used as a simple increasing-risk
+            ' assumption.
+            '-----------------------------------------------------------------
+            WeibullShape = 2
+
+            '-----------------------------------------------------------------
+            ' Step 1:
+            ' Calculate the linear predictor from the logistic regression model.
+            '
+            ' The model estimates the log-odds of diabetic foot ulcer using:
+            '   Age
+            '   BMI
+            '   Fasting blood sugar
+            '   HDL cholesterol
+            '   Insulin use/status
+            '
+            ' Note:
+            '   HDL has a negative coefficient, meaning higher HDL is associated
+            '   with lower predicted ulcer risk in the original model.
+            '-----------------------------------------------------------------
+            LinearPredictor = -12.98725 _
+                              + 0.1331305 * .Age _
+                              + 0.1944625 * .BMI _
+                              + 0.0108864 * .FBS _
+                              - 0.1184257 * .HDL _
+                              + 0.9855977 * Abs(.Insulin)
+
+            '-----------------------------------------------------------------
+            ' Step 2:
+            ' Convert the linear predictor from log-odds to probability using
+            ' the logistic transformation:
+            '
+            '   Probability = exp(linear predictor) /
+            '                 [1 + exp(linear predictor)]
+            '
+            ' This gives the predicted cumulative probability of diabetic foot
+            ' ulcer based on the patient's current characteristics.
+            '-----------------------------------------------------------------
+            CumulativeRisk = Exp(LinearPredictor)
+            CumulativeRisk = CumulativeRisk / (1 + CumulativeRisk)
+
+            '-----------------------------------------------------------------
+            ' Step 3:
+            ' Convert the cumulative risk into an annual risk for the last year.
+            '
+            ' A Weibull distribution is assumed for time from diabetes diagnosis
+            ' to diabetic foot ulcer. The Weibull curve is calibrated so that
+            ' the cumulative risk at the current diabetes duration equals the
+            ' cumulative risk predicted by the logistic regression model.
+            '
+            ' Formula:
+            '
+            '   Annual risk =
+            '   1 - (1 - cumulative risk) ^
+            '       [1 - ((D - 1) / D) ^ k]
+            '
+            ' Where:
+            '   D = diabetes duration
+            '   k = Weibull shape parameter
+            '
+            ' This estimates the conditional probability of developing diabetic
+            ' foot ulcer during the most recent year, given that the patient
+            ' was ulcer-free at the start of that year.
+            '-----------------------------------------------------------------
+            ProbUlcer = 1 - (1 - CumulativeRisk) ^ _
+                        (1 - ((DiabetesDuration - 1) / DiabetesDuration) ^ WeibullShape)
+
+        Else
+
+            '-----------------------------------------------------------------
+            ' If the patient does not have diabetes, diabetic foot ulcer risk is
+            ' assumed to be zero in this model.
+            '-----------------------------------------------------------------
             ProbUlcer = 0
-      
-      End If
 
-End With
+        End If
+
+    End With
 
 End Function
 Function ProbHypogly(patient As patient)
@@ -612,39 +820,60 @@ End Function
 Function ProbNeuro(patient As patient)
 'this is focused on diabetic neuropathy not neuropathy in general
 
-Dim DM_duration As Double
+Dim DiabetesDuration As Double
+Dim WeibullShape As Byte
+Dim LinearPredictor As Double
+Dim CumulativeRisk As Double
 
 With patient
       If .DM = True Then
         
-            DM_duration = .Age - .DM_Diagnosis_Age
+            DiabetesDuration = .Age - .DM_Diagnosis_Age
+            If DiabetesDuration = 0 Then DiabetesDuration = 1
             
             Dim RiskNow As Double, RiskLater As Double
             
             
             'Source:Young, M. J., Boulton, A. J., MacLeod, A. F., Williams, D. R., & Sonksen, P. H. (1993). A multicentre study of the prevalence of diabetic peripheral neuropathy in the United Kingdom hospital clinic population. Diabetologia, 36(2), 150–154. https://doi.org/10.1007/BF00400697
-            ' the study provides the prevalence so we are calculating the prevalence now and after one year and calculating the difference to have an estimate of the incidence
-            RiskNow = -4.56 + Abs(Abs(.DM_type1) - 1) * 0.085 + DM_duration * 0.044 + .Age * 0.054 + Abs(.Female) * -0.095
+            ' the study provides the prevalence so we are calculating the prevalence now and after four year and calculating the difference to have an estimate of the four year cumulative incidence
+            RiskNow = -4.56 + Abs(Abs(.DM_type1) - 1) * 0.085 + DiabetesDuration * 0.044 + .Age * 0.054 + Abs(.Female) * -0.095
             RiskNow = Exp(RiskNow)
             RiskNow = RiskNow / (1 + RiskNow)
-            
-            RiskLater = -4.56 + Abs(Abs(.DM_type1) - 1) * 0.085 + (DM_duration + 1) * 0.044 + (.Age + 1) * 0.054 + Abs(.Female) * -0.095
+
+            RiskLater = -4.56 + Abs(Abs(.DM_type1) - 1) * 0.085 + (DiabetesDuration + 4) * 0.044 + (.Age + 4) * 0.054 + Abs(.Female) * -0.095
             RiskLater = Exp(RiskLater)
             RiskLater = RiskLater / (1 + RiskLater)
+
+            CumulativeRisk = RiskLater - RiskNow
             
-            ProbNeuro = RiskLater - RiskNow
-            
-            'Source: Brown JB, Russell A, Chan W, Pedula K, Aickin M. The global diabetes model: user friendly version 3.0. Diabetes Res Clin Pract. 2000 Nov;50 Suppl 3:S15-46. doi: 10.1016/s0168-8227(00)00215-1. PMID: 11080561.
-            'Assuming Hispanic population as they are the closest to the egyptian population
-            'ProbNeuro = -2.027 + .Age * 0.007 + (1 - Abs(.Female)) * 0.033 + DM_duration * 0.087 + 1.046 + .HbA1C * -0.085 + 0 * .TG + -0.001 * .HDL + 0.001 * .LDL + 0 * .SBP
-            'ProbNeuro = Exp(ProbNeuro)
-            'ProbNeuro = ProbNeuro / (1 + ProbNeuro)
-            
+        '-----------------------------------------------------------------
+            ' Weibull shape parameter.
+            '
+            ' A value of 2 assumes that the instantaneous risk of diabetic foot
+            ' ulcer increases over diabetes duration.
+            '
+            ' Interpretation:
+            '   WeibullShape = 1   -> constant risk over time
+            '   WeibullShape > 1   -> increasing risk over time
+            '   WeibullShape < 1   -> decreasing risk over time
+            '
+            ' Here, WeibullShape = 2 is used as a simple increasing-risk
+            ' assumption.
+            '-----------------------------------------------------------------
+            WeibullShape = 2
+
+' then we need to adjust to the assumption that the risk is increasing over the duration of the four years and we capture the risk in the last year of the four
+' and we are assuming increasing risk on a weibull distribution by assuming a shape of 2
+            '-----------------------------------------------------------------
+            ProbNeuro = 1 - (1 - CumulativeRisk) ^ _
+                        (1 - ((4 - 1) / 4) ^ WeibullShape)
+      
       Else
             
             ProbNeuro = 0
             
       End If
+      
 End With
 
 
@@ -731,14 +960,17 @@ With patient
       
     
     ' Calculate the score for BMI
+    'disabled BMI scoring and setted it to the reference BMI score in the other publication because in this study only non obese patients were considered
     Dim bmiScore As Integer
-    If .BMI >= 26 Then
-        bmiScore = 2
-    ElseIf .BMI >= 21 Then
-        bmiScore = 1
-    Else
-        bmiScore = 0
-    End If
+'    If .BMI >= 26 Then
+'        bmiScore = 2
+'    ElseIf .BMI >= 21 Then
+'        bmiScore = 1
+'    Else
+'        bmiScore = 0
+'    End If
+    bmiScore = 1
+    
     
     ' Calculate the score for diastolic blood pressure
     Dim dbpScore As Integer
@@ -813,9 +1045,26 @@ With patient
         
     End Select
 
-End With
 
-ProbCKD = 1 - (1 - EstimatedRisk) ^ (1 / 4)
+    ProbCKD = 1 - (1 - EstimatedRisk) ^ (1 / 4)
+
+'Adjust the risk of CKD by the BMI of bigger range because the original study only considered non obese patients
+'Herrington, W. G., Smith, M., Bankhead, C., Matsushita, K., Stevens, S., Holt, T., ... & Woodward, M. (2017). Body-mass index and risk of advanced chronic kidney disease: prospective analyses from a primary care cohort of 1.4 million adults in England. PloS one, 12(3), e0173515.
+'the paper reported Hazard Ratios for CKD stage 4-5 which was assumed to be as the RR
+      If .BMI < 20 Then
+            ProbCKD = ProbCKD * 0.98
+      'reference group
+      ElseIf .BMI < 25 Then
+            ProbCKD = ProbCKD * 1
+      ElseIf .BMI < 30 Then
+            ProbCKD = ProbCKD * 1.2
+      ElseIf .BMI < 35 Then
+            ProbCKD = ProbCKD * 1.54
+      Else
+            ProbCKD = ProbCKD * 2.19
+      End If
+
+End With
 
 End Function
 

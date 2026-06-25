@@ -1017,10 +1017,10 @@ For i = 1 To DKA_Repeat
             
             'Add utilities to the aggregator module
             Utility_Temp = Utility_Temp + DKA_Cycle / Cycle_Length * DKA_DisU_Costs(DKA_CHS + 1, 2)
+            
+            DKA_CHS = NextHS(DKA_TPM, DKA_CHS, RandArray(.ID, .time_elapsed / Cycle_Length, 41))
       
       End With
-      
-      DKA_CHS = NextHS(DKA_TPM, DKA_CHS, RandArray(.ID, .time_elapsed / Cycle_Length, 41))
 
 Next i
 

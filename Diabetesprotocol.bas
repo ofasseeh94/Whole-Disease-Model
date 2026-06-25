@@ -9,7 +9,7 @@ Sub Diabetes_Treatment_Sequence_Update(patient As patient)
             Call Diabetes_Medication_Update(patient)
             'on drug administration update the HbA1C
             Call Get_Medication_Row(patient)
-            Call HbA1C_Update(patient, 1)
+            Call HbA1C_Update(patient, 0)
             
       Else
             
@@ -29,7 +29,7 @@ Dim i As Integer
 
 With patient
                   
-            If Treatment_Line = 1 Then
+            If Treatment_Line = 0 Then
 
             'effect of first line treatment
                   Baseline_Before_Medication_HbA1C = .HbA1C

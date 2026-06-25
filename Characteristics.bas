@@ -133,10 +133,14 @@ End If
             'Source: Hassan, Nayera E.; El-Masry, Sahar A.; Elwakeel, Khaled H.; El Hussieny, Mohamed S.. Development of an easy-to-use prediction equation for waist circumference based on BMI and body weight among a sample of Egyptian women. Journal of The Arab Society for Medical Research 16(2):p 100-105, Jul–Dec 2021. | DOI: 10.4103/jasmr.jasmr_23_21
             'this equation is for females only
             'link: https://journals.lww.com/ASMR/Fulltext/2021/16020/Development_of_an_easy_to_use_prediction_equation.2.aspx
-                  .WC = 48.44 + (1.471 * .BMI)
+                 ' .WC = 48.44 + (1.471 * .BMI)
+                 'Source: NHANES 2021-2023 equation as in the file NHANES waist circumference equation.
+                 .WC = 57.3425343176783 + (.BMI * 1.54476875189187)
             Else
-            '''''''''''' NOTE THAT THIS EQUATION IS FOR FEMALE AND USED UNTIL WE FIND A BETTER EQUATION FOR MEN
-                  .WC = 48.44 + (1.471 * .BMI)
+                  'Source: NHANES 2021-2023 equation as in the file NHANES waist circumference equation.
+                 .WC = 55.6464203934405 + (.BMI * 1.8250772737945)
+            
+                  '.WC = 48.44 + (1.471 * .BMI)
             End If
       
       End If
@@ -523,7 +527,7 @@ otherwise the porbability of developing the comorbiditiy will rely on last year 
                   '.Keto 'As Boolean    ' true=present , false= absent
                   .Keto = True
             
-                  'Call Keto(Patient)
+                  Call DKA(patient)
             
                   'Keto_history 'As Boolean  ' true= history of Keto
                   .Keto_history = True
@@ -811,7 +815,7 @@ With patient
                   HbA1CProg = .HbA1C + (((0.055 * Abs(.Female) + 0.063 * 0.5 + 0.04 * 0.5 + 0.679 * .HbA1C + 0.219 * LN(.Age + 1 - .Age_First_DM + 1) + 0.089 * BaseLine_HbA1C + 1.68) - (0.055 * Abs(.Female) + 0.063 * 0.5 + 0.04 * 0.5 + 0.679 * .HbA1C + 0.219 * LN(.Age - .Age_First_DM + 1) + 0.089 * BaseLine_HbA1C + 1.68)) * Cycle_Length)
                   'HbA1CProg = Hba1cProfileParametric(.time_elapsed - Time_Start_DM_Medication, Baseline_Before_Medication_HbA1C, treatment_effect_HbA1C, 0.980982, 9.3)
             Else
-                              
+                  'The same equation for insulin and non-insulin is kept intentionally. The equation doesnt differentiate except for baseline hba1c and the treatment effect and these differe actually from patient to patient and according to the drug. both equations kept for the future if we find equations that predicts the trajectory by insulin use.
                   If .Insulin = True Then
                   
                         HbA1CProg = Hba1cProfileParametric(.time_elapsed - Time_Start_DM_Medication, Baseline_Before_Medication_HbA1C, treatment_effect_HbA1C, 0.980982, 9.3)
@@ -861,6 +865,7 @@ With patient
                   End If
                   
                   HbA1CProg = 5.398 + AgeCoff + BMIcoff + WCcoff + Abs(.anti_htn_drugs) * 0.05 + Abs(.smoking) * 0.093 + Abs(.family_history_DM) * 0.071
+                  HbA1CProg = .HbA1C + ((HbA1CProg - .HbA1C) / 12)
             Else
             'male
                   'set age cofficient
@@ -893,7 +898,7 @@ With patient
                   End If
                         
                   HbA1CProg = 5.502 + AgeCoff + BMIcoff + WCcoff + Abs(.anti_htn_drugs) * 0.05 + Abs(.smoking) * 0.133 + Abs(.family_history_DM) * 0.069
-            
+                  HbA1CProg = .HbA1C + ((HbA1CProg - .HbA1C) / 12)
             End If
       End If
 

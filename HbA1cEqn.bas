@@ -27,7 +27,7 @@ Function Hba1cProfileParametric(time_since_baseline As Single, hba1c_baseline As
         'Hba1cProfileParametric = 999
         'Exit Function
     End If
-    
+
     Root1 = (kHba1cLimit - hba1c_minimum) ^ 0.5
     root2 = (hba1c_baseline - hba1c_minimum) ^ 0.5
     root3 = (hba1c_drop - hba1c_minimum) ^ 0.5
@@ -81,3 +81,7 @@ Hba1cReverse = hba1c_baseline
 
     
 End Function
+
+
+
+
