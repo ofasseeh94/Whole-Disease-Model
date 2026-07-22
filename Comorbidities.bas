@@ -1,5 +1,6 @@
 Attribute VB_Name = "Comorbidities"
 Option Explicit
+
 Function CapProb(prob As Double) As Double
     ' Check if the input probability is greater than 1
     If prob > 1 Then
@@ -10,14 +11,15 @@ Function CapProb(prob As Double) As Double
         CapProb = prob
     End If
 End Function
-Function ASCVD_check(patient As patient) As Boolean
+
+Function ASCVD_check(Patient As Patient) As Boolean
 'SOURCE: Muntner, P., Colantonio, L. D., Cushman, M., Goff, D. C., Jr, Howard, G., Howard, V. J., Kissela, B., Levitan, E. B., Lloyd-Jones, D. M., & Safford, M. M. (2014). Validation of the atherosclerotic cardiovascular disease Pooled Cohort risk equations. JAMA, 311(14), 1406–1415. https://doi.org/10.1001/jama.2014.2630
 'EQUATION IN THE SUPPLEMENTARY
 
 Dim risk As Byte
 Dim risk_score As Boolean
 
-With patient
+With Patient
     risk = Application.WorksheetFunction.Sum(Abs(.Hypertension), Abs(.DLP), Abs(.smoking), Abs(.BMI >= 30))
 
     If risk >= 2 Then risk_score = True
@@ -32,7 +34,8 @@ With patient
 End With
 
 End Function
-Function ProbStroke(patient As patient)
+
+Function ProbStroke(Patient As Patient)
 
 'Lipid_ratio = Lipid ratio, T: H  - T:H indicates ratio of total:HDL cholesterol.
 'Dim Lipid_ratio As Double
@@ -45,10 +48,8 @@ Function ProbStroke(patient As patient)
 'Dim HDLmmol As Double
 Dim mu, sigma, U As Double
 
-
-With patient
-      
-      
+With Patient
+          
   'Source:Anderson, K. M., Odell, P. M., Wilson, P. W., & Kannel, W. B. (1991). Cardiovascular disease risk profiles. American heart journal, 121(1 Pt 2), 293–298. https://doi.org/10.1016/0002-8703(91)90861-b
   'This is the equation for i year probability of stroke
 mu = 25.1067 _
@@ -155,15 +156,14 @@ mu = 25.1067 _
 'ProbMI = Temp
 
 
-
 End With
 
 End Function
 
-Function ProbDiabetes(patient As patient)
+Function ProbDiabetes(Patient As Patient)
 'Source: Lacy ME, Wellenius GA, Carnethon MR, Loucks EB, Carson AP, Luo X, et al. Racial Differences in the Performance of Existing Risk Prediction Models for Incident Type 2 Diabetes: The CARDIA Study. Diabetes Care [Internet]. 2016 Jan 11 [cited 2023 Dec 29];39(2):285–91. Available from: https://www.ncbi.nlm.nih.gov/pmc/articles/PMC4722943/ Print
 
-With patient
+With Patient
 
 'Dim HeightCoff As Single
 
@@ -195,11 +195,10 @@ End With
 
 End Function
 
-
-Function ProbHTN(patient As patient) As Double
+Function ProbHTN(Patient As Patient) As Double
 'Source: Kawasoe M, Kawasoe S, Kubozono T, Ojima S, Kawabata T, Ikeda Y, Oketani N, Miyahara H, Tokushige K, Miyata M, Ohishi M. Development of a risk prediction score for hypertension incidence using Japanese health checkup data. Hypertension Research. 2022 Apr;45(4):730-40.
 
-With patient
+With Patient
 
       ProbHTN = -16.428 + 0.0364 * .Age + 0.0632 * .BMI + 0.067 * .SBP + 0.0439 * .DBP + 0.3556 * Abs(.smoking) + 0.3639 * 0.5
       
@@ -211,7 +210,8 @@ With patient
 End With
 
 End Function
-Function ProbOSA(patient As patient) As Double
+
+Function ProbOSA(Patient As Patient) As Double
 
     ' Source: Tishler PV, Larkin EK, Schluchter MD, Redline S. Incidence of sleep-disordered breathing in an urban adult population: the relative importance of risk factors in the development of sleep-disordered breathing. Jama. 2003 May 7;289(17):2230-7.
     ' Threshold: AHI >= 15, variability-adjusted (7.5% 5-year incidence)
@@ -221,7 +221,7 @@ Function ProbOSA(patient As patient) As Double
     Dim P5yr  As Double
     Dim Male  As Double
 
-    With patient
+    With Patient
         Male = IIf(.Female, 0, 1)
         Age10 = .Age / 10
 
@@ -239,6 +239,7 @@ Function ProbOSA(patient As patient) As Double
     End With
 
 End Function
+
 'Function ProbOSA(patient As patient) As Double
 ''Source:Ahlin, Sofie MD, PhDa,b,*; Manco, Melania MD, PhDc; Panunzi, Simona PhDd; Verrastro, Ornella MScb; Giannetti, Giulia MScb; Prete, Anna MDb; Guidone, Caterina MD, PhDb; Berardino, Alessandro Di Marco MDe; Viglietta, Luca MDe; Ferravante, Anna MDe; Mingrone, Geltrude MD, PhDb,f; Mormile, Flaminio MDe; Capristo, Esmeralda MD, PhDb. A new sensitive and accurate model to predict moderate to severe obstructive sleep apnea in patients with obesity. Medicine 98(32):p e16687, August 2019. | DOI: 10.1097/MD.0000000000016687
 '    Dim x As Double
@@ -267,14 +268,13 @@ End Function
 '    End With
 '
 'End Function
-Function ProbOA(patient As patient) As Double
+Function ProbOA(Patient As Patient) As Double
 'Source: https://wrap.warwick.ac.uk/38642/1/WRAP_Muir_Ann_Rheum_Dis-2011-Zhang-1599-604.pdf
 ' Nottingham knee osteoarthritis risk prediction models
 ' Occupational_risk_OA is a string variable: 0=never, 1=seldom, 2=sometimes, 3=often, 4=always
 Dim OA_risk As Integer
 
-
-With patient
+With Patient
 
       Select Case .occupational_risk_OA
             Case Is = "never":            OA_risk = 0
@@ -296,7 +296,7 @@ End With
 
 End Function
 
-Function ProbMI(patient As patient)
+Function ProbMI(Patient As Patient)
 'This is the equation for 1 year probability of MI (Myocardial infaction)
 'VALIDATED
 'Source: D'Agostino, R. B., Russell, M. W., Huse, D. M., Ellison, R. C., Silbershatz, H., Wilson, P. W., & Hartz, S. C. (2000). Primary and subsequent coronary risk appraisal: new results from the Framingham study. American heart journal, 139(2 Pt 1), 272–281. https://doi.org/10.1067/mhj.2000.96469
@@ -312,7 +312,7 @@ Dim mu As Double
 Dim sigma As Double
 Dim U As Double
 
-      With patient
+      With Patient
 'Source:Anderson, K. M., Odell, P. M., Wilson, P. W., & Kannel, W. B. (1991). Cardiovascular disease risk profiles. American heart journal, 121(1 Pt 2), 293–298. https://doi.org/10.1016/0002-8703(91)90861-b
 'This is the equation for 1 year probability of MI
           mu = 11.0436 + Abs(.Female) * 5.1559 + Log(.Age) * -0.9302 + -2.631 * (Log(.Age) * Abs(.Female)) + _
@@ -391,12 +391,13 @@ Dim U As Double
 'ProbMI = Temp
 
 End Function
-Function ProbCHD(patient As patient)
+
+Function ProbCHD(Patient As Patient)
 'Source: Anderson KM, Odell PM, Wilson PW, Kannel WB. Cardiovascular disease risk profiles. American heart journal. 1991 Jan 1;121(1):293-8.
 Dim mu As Double
 Dim sigma As Double
 Dim U As Double
-With patient
+With Patient
 
  mu = 15.5222 + Abs(.Female) * 32.4811 + Log(.Age) * -1.6346 + -16.4933 * (Log(.Age) * Abs(.Female)) + _
           2.1059 * ((Log(.Age)) ^ 2 * Abs(.Female)) + _
@@ -416,10 +417,10 @@ End With
 
 End Function
 
-Function ProbNASH(patient As patient)
+Function ProbNASH(Patient As Patient)
 'Dim HDLmmol  As Single, UAmicromol As Single, TGmmol As Double
 Dim UAmicromol As Double, HDLmmol As Double, TGmmol As Double
-With patient
+With Patient
 
 UAmicromol = .Uric_Acid * 59.48
 HDLmmol = .HDL * 0.02586
@@ -442,9 +443,10 @@ End With
 ProbNASH = ProbNASH * 0.2
 
 End Function
-Function ProbDLP(patient As patient) As Double
+
+Function ProbDLP(Patient As Patient) As Double
 'Source: Yang X, Xu C, Wang Y, Cao C, Qin T, Zhan S, et al. Risk prediction model of dyslipidaemia over a 5-year period based on the Taiwan MJ health check-up longitudinal database. Lipids in Health and Disease [Internet]. 2018 Nov 17 [cited 2023 Dec 26];17(1). Available from: https://lipidworld.biomedcentral.com/articles/10.1186/s12944-018-0906-2 Print
-With patient
+With Patient
 'this equation was not used as the lower part is used since it is more clinically defenisble and more clinically plausible
 'If .Age < 35 Then
 '
@@ -503,12 +505,13 @@ End If
 
 End With
 End Function
-Function probKeto(patient As patient)
+
+Function probKeto(Patient As Patient)
 
 'check if patient is diabetic or not
 'Source: Davis TME, Davis W. Incidence and associates of diabetic ketoacidosis in a community-based cohort: the Fremantle Diabetes Study Phase II. BMJ Open Diabetes Res Care. 2020;8(1):e000983. doi:10.1136/bmjdrc-2019-000983
 
-With patient
+With Patient
 ' DM_type1= true means type 1 DM.
 If .DM = True Then
 
@@ -528,9 +531,10 @@ End If
 End With
 
 End Function
-Function ProbMA(patient As patient) As Double
+
+Function ProbMA(Patient As Patient) As Double
 Dim DM_duration As Double
-With patient
+With Patient
 
 If .Retino = True And .DM = True Then
             
@@ -565,7 +569,7 @@ End With
 
 End Function
 
-Function ProbNephro(patient As patient)
+Function ProbNephro(Patient As Patient)
 Dim DM_duration As Double
 Dim HbA1Cmmol As Double
 
@@ -574,7 +578,7 @@ Dim HbA1Cmmol As Double
 'Reference for HbA1Cmmol: https://ebmcalc.com/GlycemicAssessment.htm
 'Reference for TCmmol: Haney EM, Huffman LH, Bougatsos C, et al. Screening for Lipid Disorders in Children and Adolescents [Internet]. Rockville (MD): Agency for Healthcare Research and Quality (US); 2007 Jul. (Evidence Syntheses, No. 47.) Appendix 2. Units of Measure Conversion Formulas.
 
-With patient
+With Patient
 
 'HbA1Cmmol = (28.7 * .HbA1C - 46.7) / 18.015
 
@@ -621,7 +625,8 @@ End With
 
 
 End Function
-Function ProbUlcer(patient As patient) As Double
+
+Function ProbUlcer(Patient As Patient) As Double
 
     '-------------------------------------------------------------------------
     ' Purpose:
@@ -649,7 +654,7 @@ Function ProbUlcer(patient As patient) As Double
     Dim CumulativeRisk As Double
     Dim WeibullShape As Double
 
-    With patient
+    With Patient
 
         '---------------------------------------------------------------------
         ' The ulcer risk is only estimated for patients with diabetes.
@@ -767,9 +772,9 @@ Function ProbUlcer(patient As patient) As Double
     End With
 
 End Function
-Function ProbHypogly(patient As patient)
+Function ProbHypogly(Patient As Patient)
 ' these values are for the major hypoglycemic events. As per the interviews with the clinical experts, they mentioned the major hypoglycemic events are the cost drivers and minor events are low cost.
- With patient
+ With Patient
  
       If IsNull(.Diabetes_treatment_ID) Or .Diabetes_treatment_ID = 0 Then
       
@@ -785,7 +790,7 @@ Function ProbHypogly(patient As patient)
 End With
 
 End Function
-Function ProbRetino(patient As patient) As Double
+Function ProbRetino(Patient As Patient) As Double
 'Source: Fe'li SN, Emamian MH, Yaseri M, et al. Development and validation of prediction models for diabetic retinopathy in type 2 diabetes patients. PLoS One. 2025;20(7):e0325814. Published 2025 Jul 10. doi:10.1371/journal.pone.0325814
 'Note that in the article BG is non-fasting blood glucose. we used estimated average as proxy.
 Dim DM_duration As Double
@@ -794,7 +799,7 @@ Dim MBP As Double
 Dim LP5 As Double
 Dim ProbRetino5 As Double
 
-With patient
+With Patient
 
 If .DM = True Then
 
@@ -817,7 +822,7 @@ End With
 
 End Function
 
-Function ProbNeuro(patient As patient)
+Function ProbNeuro(Patient As Patient)
 'this is focused on diabetic neuropathy not neuropathy in general
 
 Dim DiabetesDuration As Double
@@ -825,7 +830,7 @@ Dim WeibullShape As Byte
 Dim LinearPredictor As Double
 Dim CumulativeRisk As Double
 
-With patient
+With Patient
       If .DM = True Then
         
             DiabetesDuration = .Age - .DM_Diagnosis_Age
@@ -880,7 +885,7 @@ End With
 End Function
 
 
-Function ProbPVD(patient As patient)
+Function ProbPVD(Patient As Patient)
 
   'Refernce:Murabito, J. M., D'Agostino, R. B., Silbershatz, H., & Wilson, W. F. (1997). Intermittent claudication. A risk profile from The Framingham Heart Study
   'https://www.ahajournals.org/doi/10.1161/01.CIR.96.1.44
@@ -890,7 +895,7 @@ Function ProbPVD(patient As patient)
     Dim L As Double
     Dim P As Double
 
-    With patient
+    With Patient
    
 
 'BPC = Blood Pressure Coefficient
@@ -941,9 +946,9 @@ Function ProbPVD(patient As patient)
     
 End Function
 
-Function ProbCKD(patient As patient) As Double
+Function ProbCKD(Patient As Patient) As Double
 'Source: Chien KL, Lin HJ, Lee BC, Hsu HC, Lee YT, Chen MF. A prediction model for the risk of incident chronic kidney disease. The American journal of medicine. 2010 Sep 1;123(9):836-46.
-With patient
+With Patient
 
     ' Calculate the score for age
       Dim ageScore As Integer
@@ -1068,7 +1073,7 @@ End With
 
 End Function
 
-Function ProbHF(patient As patient)
+Function ProbHF(Patient As Patient)
 'Source: Khan, S. S., Ning, H., Shah, S. J., Yancy, C. W., Carnethon, M., Berry, J. D., Mentz, R. J., O'Brien, E., Correa, A., Suthahar, N., de Boer, R. A., Wilkins, J. T., & Lloyd-Jones, D. M. (2019). 10-Year Risk Equations for Incident Heart Failure in the General Population. Journal of the American College of Cardiology, 73(19), 2388–2397. https://doi.org/10.1016/j.jacc.2019.02.057
 
 'ProbHF =

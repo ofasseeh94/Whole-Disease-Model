@@ -41,13 +41,13 @@ Public Active_Complications As Byte
 'Public Col_Complications() As Complication
 '__________________________________________________________________________________________________________________________
 'Patients
-Public Patients() As patient
+Public Patients() As Patient
 'Set data source
 Public Patient_Cohort_Matrix As Variant
 'Number of patients
 Public NPatients As Long
 'Collection of patients
-Public Col_Patients() As patient
+Public Col_Patients() As Patient
 'Mean Age
 Public Avg_Age As Double
 'Utilities

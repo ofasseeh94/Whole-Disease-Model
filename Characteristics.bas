@@ -3,7 +3,7 @@ Option Explicit
 
 Public Previous_BMI As Double
 
-Public Sub Characteristics_Progression(patient As patient)
+Public Sub Characteristics_Progression(Patient As Patient)
 '''''''Cycle length must be provided in years'''''''''
 
 'some of the patient characteristics are instantly updated by other functions or modules the rest are updated here
@@ -16,14 +16,24 @@ Public Sub Characteristics_Progression(patient As patient)
 
 'Define general index variables
 Dim i As Long
-
-With patient
       
-      'Based on the model cycle length
-      .time_elapsed = .time_elapsed + Cycle_Length 'As Double     'Duration the patient spent in the model
-      .Age = .Age + Cycle_Length
-      
- 
+    'store last cycle age, BMI, and SBP for the delta SBP calculation later
+    
+        Dim OldAge As Single
+        Dim OldBMI As Single
+        Dim OldSBP As Single
+        
+        With Patient
+        
+            OldAge = .Age
+            OldBMI = .BMI
+            OldSBP = .SBP
+              
+            'Based on the model cycle length
+            .time_elapsed = .time_elapsed + Cycle_Length 'As Double     'Duration the patient spent in the model
+            .Age = .Age + Cycle_Length
+            
+        
 '''''''''''''''''''''MENOPAUSE'''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''
       '.Menopause 'As Boolean    'True= menopause occured, False=menopause didn't occur
       '.age_menopause 'As Single 'Female age at menopause
@@ -31,7 +41,6 @@ With patient
       'SOURCE for age of menopause equation: Tehrani, F. R., Solaymani-Dodaran, M., Tohidi, M., Gohari, M. R., & Azizi, F. (2013). Modeling age at menopause using serum concentration of anti-mullerian hormone. The Journal of clinical endocrinology and metabolism, 98(2), 729–735. https://doi.org/10.1210/jc.2012-3176
 If .Female = True And (IsEmpty(.age_menopause) Or .age_menopause = 0) Then
     
-      
       Dim AMH As Double
       Dim ActiveAge As Single
       
@@ -46,7 +55,6 @@ If .Female = True And (IsEmpty(.age_menopause) Or .age_menopause = 0) Then
         ' in this equation, AMH was ng/dl
       .age_menopause = Application.WorksheetFunction.Min(63, (-LN(0.5)) ^ (0.060388) * Exp(3.18019 + 0.1608897 * AMH + 0.016068 * (ActiveAge - .time_elapsed)))
            
-
 End If
   If .age_menopause <= .Age Then
       
@@ -109,7 +117,7 @@ End If
             End If
       
       End If
-
+      
 '''''''''''''''''''''Waist Circumference''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''
       
       
@@ -152,7 +160,7 @@ End If
  'Parameters were log transformed to the natural logarithm because the data were skewed
 
   
-  With patient
+  With Patient
   
   .GGT = Exp(1.608046929 + .Age * 0.004841736 + .BMI * 0.017174985 + Abs(.Female) * -0.357500953 + .HbA1C * 0.072271899 + .TC * 0.002991914 + .HDL * -0.000764338)
   .AST = Exp(2.850595177 + .Age * 0.000876495 + .BMI * 0.000673665 + Abs(.Female) * -0.187585319 + .HbA1C * -0.006711421 + .TC * 0.000734709 + .HDL * 0.001467541)
@@ -230,20 +238,34 @@ If .GGT > 90 Then .GGT = 90
   If .DBP < 60 Then .DBP = 60
   
 '************************************* SBP*******************************************
- 'Source:Skurnick, J. H., Aladjem, M., & Aviv, A. (2010). Sex differences in pulse pressure trends with age are cross-cultural. Hypertension (Dallas, Tex. : 1979), 55(1), 40–47. https://doi.org/10.1161/HYPERTENSIONAHA.109.139477
- Dim PP As Double
-  
-  If .Female = True Then
+'Update SBP after BMI and age have been updated
+'This calculation applies only the expected change on top of the base SBP to account for the original model situation, to account for the model conditions in treatment resistant or
+'unctonrolled hypertension population
 
-    PP = 41.9 + (.Age - 40) * 0.337 + (.Age - 40) ^ 2 * 0.0136
-    
-  Else
-     
-     PP = 43.4 + (.Age - 40) * 0.128 + (.Age - 40) ^ 2 * 0.0147
-     
-  End If
-  'Since the SBP is the sum of DBP and PP, SBP will be always higher than DBP.
-  .SBP = PP + .DBP
+    Call BP_Update_SBP_By_Delta(Patient, OldAge, OldBMI, OldSBP)
+
+
+'Since we now calculate the SBP and the DBP each seperately, we don't need to rely on the PP equation anymore as it does not make sense, we can calculate the actual PP
+'by PP = SBP - DBP
+
+Dim PP As Double
+
+    PP = .SBP - .DBP
+
+' 'Source:Skurnick, J. H., Aladjem, M., & Aviv, A. (2010). Sex differences in pulse pressure trends with age are cross-cultural. Hypertension (Dallas, Tex. : 1979), 55(1), 40–47. https://doi.org/10.1161/HYPERTENSIONAHA.109.139477
+' Dim PP As Double
+'
+'  If .Female = True Then
+'
+'    PP = 41.9 + (.Age - 40) * 0.337 + (.Age - 40) ^ 2 * 0.0136
+'
+'  Else
+'
+'     PP = 43.4 + (.Age - 40) * 0.128 + (.Age - 40) ^ 2 * 0.0147
+'
+'  End If
+'  'Since the SBP is the sum of DBP and PP, SBP will be always higher than DBP.
+'  .SBP = PP + .DBP
   
   
 '''''''''''''''''Lipid Profile''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''
@@ -286,7 +308,7 @@ End If
 ''''''''''''Diabetes parameters are mostly MANAGED BY THE DIABETES MODEL
 '''''''''''''''''''HbA1C'''''''''''''''''''''''''''''''''''
 'HbA1C update
-.HbA1C = HbA1CProg(patient)
+.HbA1C = HbA1CProg(Patient)
 
       '.DM_recognized 'As Boolean 'True=Patients know that they are diabetic , False= patients don't know
       If .DM = True Then
@@ -375,7 +397,7 @@ End If
 'check if complication is still affecting the patient and Adjust utility value based on complications disutility accordingly. Also add costs if complication is still affecting the patient
 'On Error GoTo Skip_Complications
 
-      For i = 1 To UBound(patient.Complication_Status)
+      For i = 1 To UBound(Patient.Complication_Status)
             
       'Define when the complication should end in years
       Dim EndTime_Complication As Double
@@ -383,9 +405,9 @@ End If
       EndTime_Complication = .Complication_Status(i).FirstOnset + .Complication_Status(i).Length / 52
             
             'check if complication still exists
-            If EndTime_Complication <= patient.time_elapsed - Cycle_Length Then
+            If EndTime_Complication <= Patient.time_elapsed - Cycle_Length Then
             
-                  patient.Complication_Status(i).Affected = False
+                  Patient.Complication_Status(i).Affected = False
             
             Else
                   
@@ -404,7 +426,7 @@ End If
 Skip_Complications:
   
 'Assess comorbidities
-Call Assess_Comorbidities(patient)
+Call Assess_Comorbidities(Patient)
 
 'HbA1C is updated after the treatment module of diabetes is run to consider the effect of the treatment in the HbA1C change
 'HbA1C update
@@ -458,7 +480,7 @@ Call Assess_Comorbidities(patient)
       End If
 
       'calculate utility value based on distutilities throughout the cycle
-      Utility_Instant = Agg_Utility(Disutility_Arr, patient, Disutility_Method) * Cycle_Length
+      Utility_Instant = Agg_Utility(Disutility_Arr, Patient, Disutility_Method) * Cycle_Length
       
       'Discount and Aggregate QALYs
       .Agg_QALYs = .Agg_QALYs + Utility_Instant
@@ -473,9 +495,9 @@ End With
 End Sub
 
 
-Public Sub Assess_Comorbidities(patient As patient)
+Public Sub Assess_Comorbidities(Patient As Patient)
 
-With patient
+With Patient
       
       'BELOW comorbidities are updated through the comorbidities incidence Module
       
@@ -487,11 +509,11 @@ otherwise the porbability of developing the comorbiditiy will rely on last year 
             '.DM 'As Boolean'True= Has diabetes , Fasle= NO diabtes
             If .DM = True Then
                   
-                  Call DM(patient)
+                  Call DM(Patient)
                         
-            ElseIf (1 - (1 - ProbDiabetes(patient)) ^ (Cycle_Length)) > RandArray(.ID, .time_elapsed / Cycle_Length, 21) Then
+            ElseIf (1 - (1 - ProbDiabetes(Patient)) ^ (Cycle_Length)) > RandArray(.ID, .time_elapsed / Cycle_Length, 21) Then
             
-                  Call DM(patient)
+                  Call DM(Patient)
                   .DM = True
                   If .Age_First_DM = 0 Then .Age_First_DM = .Age
                   
@@ -503,13 +525,13 @@ otherwise the porbability of developing the comorbiditiy will rely on last year 
             'Assess if the patient have a hypoglycemic event or not
             'HypoGly
             
-            If (1 - (1 - ProbHypogly(patient)) ^ (Cycle_Length)) > RandArray(.ID, .time_elapsed / Cycle_Length, 5) Then
+            If (1 - (1 - ProbHypogly(Patient)) ^ (Cycle_Length)) > RandArray(.ID, .time_elapsed / Cycle_Length, 5) Then
                   
                   '.HypoGly 'As Boolean    ' true=present , false= absent
                   .HypoGly = True
                   .previousHypoGly = True
                   
-                  Call HypoGly(patient)
+                  Call HypoGly(Patient)
                         
             End If
 
@@ -522,12 +544,12 @@ otherwise the porbability of developing the comorbiditiy will rely on last year 
                   '.Keto_history 'As Boolean   'Patient had a previous ketoacidosis or not
                         'Keto
             
-            If (1 - (1 - probKeto(patient)) ^ (Cycle_Length)) > RandArray(.ID, .time_elapsed / Cycle_Length, 6) Then
+            If (1 - (1 - probKeto(Patient)) ^ (Cycle_Length)) > RandArray(.ID, .time_elapsed / Cycle_Length, 6) Then
                   
                   '.Keto 'As Boolean    ' true=present , false= absent
                   .Keto = True
             
-                  Call DKA(patient)
+                  Call DKA(Patient)
             
                   'Keto_history 'As Boolean  ' true= history of Keto
                   .Keto_history = True
@@ -543,14 +565,14 @@ otherwise the porbability of developing the comorbiditiy will rely on last year 
             
             'PVD
             
-            If .PVD = True Or (1 - (1 - ProbPVD(patient)) ^ (Cycle_Length)) > RandArray(.ID, .time_elapsed / Cycle_Length, 7) Then
+            If .PVD = True Or (1 - (1 - ProbPVD(Patient)) ^ (Cycle_Length)) > RandArray(.ID, .time_elapsed / Cycle_Length, 7) Then
                   
                   '.PVD 'As Boolean    ' true=present , false= absent
                   .PVD = True
                   
                   If .Age_First_PVD = 0 Then .Age_First_PVD = .Age
 
-                  Call PVD(patient)
+                  Call PVD(Patient)
                         
             End If
 
@@ -566,14 +588,14 @@ otherwise the porbability of developing the comorbiditiy will rely on last year 
             '.OA 'As Boolean'Patient has osteoarthritis
                         'OA
             
-            If .OA = True Or (1 - (1 - ProbOA(patient)) ^ (Cycle_Length)) > RandArray(.ID, .time_elapsed / Cycle_Length, 8) Then
+            If .OA = True Or (1 - (1 - ProbOA(Patient)) ^ (Cycle_Length)) > RandArray(.ID, .time_elapsed / Cycle_Length, 8) Then
                   
                   '.OA 'As Boolean    ' true=present , false= absent
                   .OA = True
                   
                   If .Age_First_OA = 0 Then .Age_First_OA = .Age
 
-                  Call OA(patient)
+                  Call OA(Patient)
                         
             End If
 
@@ -581,14 +603,14 @@ otherwise the porbability of developing the comorbiditiy will rely on last year 
             '.OSA 'As Boolean'if patient has obstructive sleep apnea
                         'OSA
             
-            If .OSA = True Or (1 - (1 - ProbOSA(patient)) ^ (Cycle_Length)) > RandArray(.ID, .time_elapsed / Cycle_Length, 9) Then
+            If .OSA = True Or (1 - (1 - ProbOSA(Patient)) ^ (Cycle_Length)) > RandArray(.ID, .time_elapsed / Cycle_Length, 9) Then
                   
                   '.OSA 'As Boolean    ' true=present , false= absent
                   .OSA = True
                   
                   If .Age_First_OSA = 0 Then .Age_First_OSA = .Age
 
-                  Call OSA(patient)
+                  Call OSA(Patient)
                         
             End If
 
@@ -596,12 +618,12 @@ otherwise the porbability of developing the comorbiditiy will rely on last year 
             '.MA 'As Boolean ' if patient has macular edema
                         'MA
             
-            If .MA = True Or (1 - (1 - ProbMA(patient)) ^ (Cycle_Length)) > RandArray(.ID, .time_elapsed / Cycle_Length, 10) Then
+            If .MA = True Or (1 - (1 - ProbMA(Patient)) ^ (Cycle_Length)) > RandArray(.ID, .time_elapsed / Cycle_Length, 10) Then
                   
                   '.MA 'As Boolean    ' true=present , false= absent
                   .MA = True
             
-                  Call MA(patient)
+                  Call MA(Patient)
                         
             End If
 
@@ -609,14 +631,14 @@ otherwise the porbability of developing the comorbiditiy will rely on last year 
             '.Retino 'As Boolean   ' if the patient has diabetic  retinopathy
                         'Retino
             
-            If .Retino = True Or (1 - (1 - ProbRetino(patient)) ^ (Cycle_Length)) > RandArray(.ID, .time_elapsed / Cycle_Length, 11) Then
+            If .Retino = True Or (1 - (1 - ProbRetino(Patient)) ^ (Cycle_Length)) > RandArray(.ID, .time_elapsed / Cycle_Length, 11) Then
                   
                   '.Retino 'As Boolean    ' true=present , false= absent
                   .Retino = True
                   
                   If .Age_First_Retino = 0 Then .Age_First_Retino = .Age
 
-                  Call Retino(patient)
+                  Call Retino(Patient)
                         
             End If
 
@@ -624,14 +646,14 @@ otherwise the porbability of developing the comorbiditiy will rely on last year 
             '.Neuro 'As Boolean    ' if the patient has diabetic neuropathy
                         'Neuro
             
-            If .Neuro = True Or (1 - (1 - ProbNeuro(patient)) ^ (Cycle_Length)) > RandArray(.ID, .time_elapsed / Cycle_Length, 12) Then
+            If .Neuro = True Or (1 - (1 - ProbNeuro(Patient)) ^ (Cycle_Length)) > RandArray(.ID, .time_elapsed / Cycle_Length, 12) Then
                   
                   '.Neuro 'As Boolean    ' true=present , false= absent
                   .Neuro = True
                   
                   If .Age_First_Neuro = 0 Then .Age_First_Neuro = .Age
 
-                  Call Neuro(patient)
+                  Call Neuro(Patient)
                         
             End If
 
@@ -639,12 +661,12 @@ otherwise the porbability of developing the comorbiditiy will rely on last year 
             '.DLP 'As Boolean 'true= hyperlipdemia present, false=not present
                         'DLP
             
-            If .DLP = True Or (1 - (1 - ProbDLP(patient)) ^ (Cycle_Length)) > RandArray(.ID, .time_elapsed / Cycle_Length, 13) Then
+            If .DLP = True Or (1 - (1 - ProbDLP(Patient)) ^ (Cycle_Length)) > RandArray(.ID, .time_elapsed / Cycle_Length, 13) Then
                   
                   '.DLP 'As Boolean    ' true=present , false= absent
                   .DLP = True
             
-                  Call DLP(patient)
+                  Call DLP(Patient)
                         
             End If
 
@@ -652,12 +674,12 @@ otherwise the porbability of developing the comorbiditiy will rely on last year 
             '.CHD 'As Boolean     'True= has cronary heart disease, False= No CHD
                         'CHD
             
-            If .CHD = True Or (1 - (1 - ProbCHD(patient)) ^ (Cycle_Length)) > RandArray(.ID, .time_elapsed / Cycle_Length, 14) Then
+            If .CHD = True Or (1 - (1 - ProbCHD(Patient)) ^ (Cycle_Length)) > RandArray(.ID, .time_elapsed / Cycle_Length, 14) Then
                   
                   '.CHD 'As Boolean    ' true=present , false= absent
                   .CHD = True
             
-                  Call CHD(patient)
+                  Call CHD(Patient)
                   '.Age_First_CHD 'As Single  'Age 'As first
                   If .Age_First_CHD = 0 Then .Age_First_CHD = .Age
                         
@@ -674,14 +696,14 @@ otherwise the porbability of developing the comorbiditiy will rely on last year 
       
                   'HTN
             
-            If .Hypertension = True Or (1 - (1 - ProbHTN(patient)) ^ (Cycle_Length)) > RandArray(.ID, .time_elapsed / Cycle_Length, 15) Then
+            If .Hypertension = True Or (1 - (1 - ProbHTN(Patient)) ^ (Cycle_Length)) > RandArray(.ID, .time_elapsed / Cycle_Length, 15) Then
                   
                   '.HTN 'As Boolean    ' true=present , false= absent
                   .Hypertension = True
                   
                   If .Age_First_HTN = 0 Then .Age_First_HTN = .Age
                   
-                  Call HTN(patient)
+                  Call HTN(Patient)
 
                         
             End If
@@ -692,14 +714,14 @@ otherwise the porbability of developing the comorbiditiy will rely on last year 
             
                         'NASH
             
-            If .NASH = True Or (1 - (1 - ProbNASH(patient)) ^ (Cycle_Length)) > RandArray(.ID, .time_elapsed / Cycle_Length, 16) Then
+            If .NASH = True Or (1 - (1 - ProbNASH(Patient)) ^ (Cycle_Length)) > RandArray(.ID, .time_elapsed / Cycle_Length, 16) Then
                   
                   '.NASH 'As Boolean    ' true=present , false= absent
                   .NASH = True
                   
                   If .Age_First_NASH = 0 Then .Age_First_NASH = .Age
 
-                  Call NASH(patient)
+                  Call NASH(Patient)
                         
             End If
 
@@ -721,12 +743,12 @@ otherwise the porbability of developing the comorbiditiy will rely on last year 
       
             'Ulcer
             
-                  If .Ulcer = True Or (1 - (1 - ProbUlcer(patient)) ^ (Cycle_Length)) > RandArray(.ID, .time_elapsed / Cycle_Length, 18) Then
+                  If .Ulcer = True Or (1 - (1 - ProbUlcer(Patient)) ^ (Cycle_Length)) > RandArray(.ID, .time_elapsed / Cycle_Length, 18) Then
                         
                         '.Ulcer 'As Boolean    ' true=present , false= absent
                         .Ulcer = True
                   
-                        Call Foot_Ulcer(patient)
+                        Call Foot_Ulcer(Patient)
                   
                         '.ulcer_amput_history 'As Boolean  ' true= any history of ulcer or amuptation , false= no ulcer or amputation
                         If Foot_Ulcer_CHS = 4 And .ulcer_amput_history = False Then
@@ -742,14 +764,14 @@ otherwise the porbability of developing the comorbiditiy will rely on last year 
             
             'CKD
             
-                  If .CKD = True Or (1 - (1 - ProbCKD(patient)) ^ (Cycle_Length)) > RandArray(.ID, .time_elapsed / Cycle_Length, 45) Then
+                  If .CKD = True Or (1 - (1 - ProbCKD(Patient)) ^ (Cycle_Length)) > RandArray(.ID, .time_elapsed / Cycle_Length, 45) Then
                         
                         '.CKD 'As Boolean    ' true=present , false= absent
                         .CKD = True
                         
                         If .Age_First_CKD = 0 Then .Age_First_CKD = .Age
 
-                        Call CKD(patient)
+                        Call CKD(Patient)
                                                 
                   End If
       
@@ -761,14 +783,14 @@ otherwise the porbability of developing the comorbiditiy will rely on last year 
             
                         'Stroke
             
-            If .Stroke = True Or (1 - (1 - ProbStroke(patient)) ^ (Cycle_Length)) > RandArray(.ID, .time_elapsed / Cycle_Length, 19) Then
+            If .Stroke = True Or (1 - (1 - ProbStroke(Patient)) ^ (Cycle_Length)) > RandArray(.ID, .time_elapsed / Cycle_Length, 19) Then
                   
                   '.Stroke 'As Boolean    ' true=present , false= absent
                   .Stroke = True
             
                   If .Age_First_Stroke = 0 Then .Age_First_Stroke = .Age
                   
-                  Call Stroke(patient)
+                  Call Stroke(Patient)
             
                   'Stroke_history 'As Boolean  ' true= history of Stroke
                   .Stroke_history = True
@@ -777,14 +799,14 @@ otherwise the porbability of developing the comorbiditiy will rely on last year 
 
             'MI
             
-            If .MI = True Or (1 - (1 - ProbMI(patient)) ^ (Cycle_Length)) > RandArray(.ID, .time_elapsed / Cycle_Length, 20) Then
+            If .MI = True Or (1 - (1 - ProbMI(Patient)) ^ (Cycle_Length)) > RandArray(.ID, .time_elapsed / Cycle_Length, 20) Then
                   
                   '.MI 'As Boolean    ' true=present , false= absent
                   .MI = True
                   
                   If .Age_First_MI = 0 Then .Age_First_MI = .Age
 
-                  Call MI(patient)
+                  Call MI(Patient)
             
                   'MI_history 'As Boolean  ' true= history of MI
                   .MI_history = True
@@ -795,11 +817,11 @@ End With
 
 End Sub
 
-Function HbA1CProg(patient As patient) As Double
+Function HbA1CProg(Patient As Patient) As Double
 'this function intends to predict the progression of HbA1C of the patient over time
 'the function is fed with the patient data and provides the new HbA1C after 6 month
 
-With patient
+With Patient
 
       If .DM = True Then
             'if patient is diabetic use this equation
@@ -917,5 +939,426 @@ End Function
 Function HbAlc_Perc(HbAlc_mmol As Single) As Single
 
 HbAlc_Perc = (HbAlc_mmol * 0.0915) * 2.25
+
+End Function
+
+Option Explicit
+
+'===============================================================================
+' Function: QRS_Estimate
+'
+' Purpose:
+'   Estimates QRS duration in milliseconds using:
+'       1. Age
+'       2. BMI
+'       3. Sex
+'       4. Heart failure status
+'       5. Obstructive sleep apnoea status
+'
+' Baseline QRS source:
+'   Rao ACA, Ng ACC, Sy RW, et al.
+'   "Electrocardiographic QRS duration is influenced by body mass index
+'   and sex."
+'   International Journal of Cardiology Heart & Vasculature.
+'   2021;37:100884.
+'
+' Heart failure adjustment:
+'   Approximately 25% of hospitalized heart failure patients were reported
+'   to have QRS duration >=120 ms.
+'
+'   In this model:
+'       25% of HF patients receive +40 ms
+'       75% of HF patients receive +3 ms
+'
+'   The 25% probability is literature-based.
+'   The +40 ms and +3 ms values are modelling assumptions.
+'
+' OSA adjustment:
+'   Pressman GS, Orban M, Leinveber P, et al.
+'   "Association between QRS duration and obstructive sleep apnea."
+'   Journal of Clinical Sleep Medicine. 2012;8(6):649-654.
+'
+'   Mean QRS values reported:
+'       No OSA:                85 ms
+'       Mild-to-moderate OSA: 89 ms
+'
+'   Therefore, binary OSA receives an addition of:
+'       89 - 85 = 4 ms
+'
+' Inputs:
+'   Age:
+'       Age in years.
+'       Ages below 20 are treated as age 20.
+'       Ages above 89 are treated as age 89.
+'
+'   BMI:
+'       Body mass index in kg/m^2.
+'
+'   Female:
+'       True  = female
+'       False = male
+'
+'   HF:
+'       True  = heart failure present
+'       False = heart failure absent
+'
+'   OSA:
+'       True  = obstructive sleep apnoea present
+'       False = obstructive sleep apnoea absent
+'
+'   ID:
+'       Patient identifier passed to RandArray.
+'
+'       RandArray(ID, 1, 1) is assumed to return a reproducible random number
+'       between 0 and 1.
+'
+' Return:
+'   Estimated QRS duration in milliseconds.
+'
+' Example:
+'   =QRS_Estimate(65,32,TRUE,TRUE,TRUE,1001)
+'
+' Important limitation:
+'   This is a population-level estimate and does not replace direct ECG
+'   measurement. Bundle branch block, pacing, pre-excitation, electrolyte
+'   disturbances and other conduction abnormalities are not explicitly modelled.
+'===============================================================================
+
+Public Function QRS_Estimate( _
+    ByVal Age As Single, _
+    ByVal BMI As Single, _
+    ByVal Female As Boolean, _
+    ByVal HF As Boolean, _
+    ByVal OSA As Boolean, _
+    ByVal ID As Variant) As Variant
+
+    '===========================================================================
+    ' Local fixed model parameters
+    '
+    ' These constants are declared inside the function so VBA can always find
+    ' them, regardless of the module structure.
+    '===========================================================================
+
+    Const QRS_MINIMUM_AGE As Single = 20!
+    Const QRS_MAXIMUM_AGE As Single = 89!
+
+    Const QRS_HF_WIDE_PROBABILITY As Double = 0.25
+    Const QRS_HF_WIDE_ADDITION As Double = 40#
+    Const QRS_HF_NARROW_ADDITION As Double = 3#
+
+    Const QRS_OSA_ADDITION As Double = 4#
+
+    '===========================================================================
+    ' Calculation variables
+    '===========================================================================
+
+    Dim EffectiveAge As Single
+    Dim AgeCategory As Long
+    Dim BMICategory As Long
+
+    Dim BaseQRS As Double
+    Dim HFAdjustment As Double
+    Dim OSAAdjustment As Double
+    Dim HFRandomNumber As Double
+
+    On Error GoTo ErrorHandler
+
+    '---------------------------------------------------------------------------
+    ' Validate BMI
+    '---------------------------------------------------------------------------
+
+    If BMI <= 0 Then
+        QRS_Estimate = CVErr(xlErrNA)
+        Exit Function
+    End If
+
+    '---------------------------------------------------------------------------
+    ' Normalize age
+    '
+    ' Ages below 20 are treated as age 20.
+    ' Ages above 89 are treated as age 89.
+    '---------------------------------------------------------------------------
+
+    EffectiveAge = Age
+
+    If EffectiveAge < QRS_MINIMUM_AGE Then
+
+        EffectiveAge = QRS_MINIMUM_AGE
+
+    ElseIf EffectiveAge > QRS_MAXIMUM_AGE Then
+
+        EffectiveAge = QRS_MAXIMUM_AGE
+
+    End If
+
+    '---------------------------------------------------------------------------
+    ' Assign age category
+    '
+    '   1 = 20-29
+    '   2 = 30-39
+    '   3 = 40-49
+    '   4 = 50-59
+    '   5 = 60-69
+    '   6 = 70-79
+    '   7 = 80-89
+    '---------------------------------------------------------------------------
+
+    Select Case EffectiveAge
+
+        Case Is < 30
+            AgeCategory = 1
+
+        Case Is < 40
+            AgeCategory = 2
+
+        Case Is < 50
+            AgeCategory = 3
+
+        Case Is < 60
+            AgeCategory = 4
+
+        Case Is < 70
+            AgeCategory = 5
+
+        Case Is < 80
+            AgeCategory = 6
+
+        Case Else
+            AgeCategory = 7
+
+    End Select
+
+    '---------------------------------------------------------------------------
+    ' Assign BMI category
+    '
+    '   1 = BMI <18.5
+    '   2 = BMI 18.5 to <25
+    '   3 = BMI 25 to <30
+    '   4 = BMI >=30
+    '---------------------------------------------------------------------------
+
+    Select Case BMI
+
+        Case Is < 18.5
+            BMICategory = 1
+
+        Case Is < 25
+            BMICategory = 2
+
+        Case Is < 30
+            BMICategory = 3
+
+        Case Else
+            BMICategory = 4
+
+    End Select
+
+    '---------------------------------------------------------------------------
+    ' Retrieve baseline QRS duration according to sex, age category and BMI
+    '---------------------------------------------------------------------------
+
+    If Female Then
+
+        '=======================================================================
+        ' FEMALE BASELINE QRS DURATION, ms
+        '=======================================================================
+
+        Select Case AgeCategory
+
+            Case 1      'Age 20-29
+
+                Select Case BMICategory
+                    Case 1: BaseQRS = 82.8
+                    Case 2: BaseQRS = 83.4
+                    Case 3: BaseQRS = 83.9
+                    Case 4: BaseQRS = 85.6
+                End Select
+
+            Case 2      'Age 30-39
+
+                Select Case BMICategory
+                    Case 1: BaseQRS = 80.1
+                    Case 2: BaseQRS = 83.1
+                    Case 3: BaseQRS = 83.6
+                    Case 4: BaseQRS = 85#
+                End Select
+
+            Case 3      'Age 40-49
+
+                Select Case BMICategory
+                    Case 1: BaseQRS = 80.5
+                    Case 2: BaseQRS = 82.8
+                    Case 3: BaseQRS = 83.5
+                    Case 4: BaseQRS = 84.6
+                End Select
+
+            Case 4      'Age 50-59
+
+                Select Case BMICategory
+                    Case 1: BaseQRS = 80.3
+                    Case 2: BaseQRS = 82.6
+                    Case 3: BaseQRS = 83.2
+                    Case 4: BaseQRS = 84.5
+                End Select
+
+            Case 5      'Age 60-69
+
+                Select Case BMICategory
+                    Case 1: BaseQRS = 80.8
+                    Case 2: BaseQRS = 82.8
+                    Case 3: BaseQRS = 83.5
+                    Case 4: BaseQRS = 84.2
+                End Select
+
+            Case 6      'Age 70-79
+
+                Select Case BMICategory
+                    Case 1: BaseQRS = 81.2
+                    Case 2: BaseQRS = 82.6
+                    Case 3: BaseQRS = 82.9
+                    Case 4: BaseQRS = 84#
+                End Select
+
+            Case 7      'Age 80-89
+
+                Select Case BMICategory
+                    Case 1: BaseQRS = 80.1
+                    Case 2: BaseQRS = 82.4
+                    Case 3: BaseQRS = 82.7
+                    Case 4: BaseQRS = 89.9
+                End Select
+
+        End Select
+
+    Else
+
+        '=======================================================================
+        ' MALE BASELINE QRS DURATION, ms
+        '=======================================================================
+
+        Select Case AgeCategory
+
+            Case 1      'Age 20-29
+
+                Select Case BMICategory
+                    Case 1: BaseQRS = 91.3
+                    Case 2: BaseQRS = 94.4
+                    Case 3: BaseQRS = 94#
+                    Case 4: BaseQRS = 94.3
+                End Select
+
+            Case 2      'Age 30-39
+
+                Select Case BMICategory
+                    Case 1: BaseQRS = 87.7
+                    Case 2: BaseQRS = 92.3
+                    Case 3: BaseQRS = 93.2
+                    Case 4: BaseQRS = 93.1
+                End Select
+
+            Case 3      'Age 40-49
+
+                Select Case BMICategory
+                    Case 1: BaseQRS = 90.5
+                    Case 2: BaseQRS = 91.8
+                    Case 3: BaseQRS = 92.4
+                    Case 4: BaseQRS = 92.9
+                End Select
+
+            Case 4      'Age 50-59
+
+                Select Case BMICategory
+                    Case 1: BaseQRS = 86.5
+                    Case 2: BaseQRS = 90.2
+                    Case 3: BaseQRS = 91.5
+                    Case 4: BaseQRS = 91.8
+                End Select
+
+            Case 5      'Age 60-69
+
+                Select Case BMICategory
+                    Case 1: BaseQRS = 83#
+                    Case 2: BaseQRS = 89.5
+                    Case 3: BaseQRS = 90.7
+                    Case 4: BaseQRS = 91.4
+                End Select
+
+            Case 6      'Age 70-79
+
+                Select Case BMICategory
+                    Case 1: BaseQRS = 86.1
+                    Case 2: BaseQRS = 89.4
+                    Case 3: BaseQRS = 90.5
+                    Case 4: BaseQRS = 90.9
+                End Select
+
+            Case 7      'Age 80-89
+
+                Select Case BMICategory
+                    Case 1: BaseQRS = 88.5
+                    Case 2: BaseQRS = 89.5
+                    Case 3: BaseQRS = 89.6
+                    Case 4: BaseQRS = 89.9
+                End Select
+
+        End Select
+
+    End If
+
+    '---------------------------------------------------------------------------
+    ' Apply heart failure adjustment
+    '
+    ' RandArray is called only once so the patient remains in the same HF
+    ' subgroup during the current function call.
+    '---------------------------------------------------------------------------
+
+    HFAdjustment = 0#
+
+    If HF Then
+
+        HFRandomNumber = CDbl(RandArray(ID, 1, 1))
+
+        'Ensure RandArray returned a valid probability.
+        If HFRandomNumber < 0# Or HFRandomNumber > 1# Then
+            QRS_Estimate = CVErr(xlErrNum)
+            Exit Function
+        End If
+
+        If HFRandomNumber <= QRS_HF_WIDE_PROBABILITY Then
+
+            '25% of HF patients
+            HFAdjustment = QRS_HF_WIDE_ADDITION
+
+        Else
+
+            'Remaining 75% of HF patients
+            HFAdjustment = QRS_HF_NARROW_ADDITION
+
+        End If
+
+    End If
+
+    '---------------------------------------------------------------------------
+    ' Apply obstructive sleep apnoea adjustment
+    '---------------------------------------------------------------------------
+
+    OSAAdjustment = 0#
+
+    If OSA Then
+        OSAAdjustment = QRS_OSA_ADDITION
+    End If
+
+    '---------------------------------------------------------------------------
+    ' Return final estimated QRS duration
+    '---------------------------------------------------------------------------
+
+    QRS_Estimate = BaseQRS + HFAdjustment + OSAAdjustment
+
+    Exit Function
+
+ErrorHandler:
+
+    'Return Excel #N/A if an unexpected error occurs.
+    QRS_Estimate = CVErr(xlErrNA)
 
 End Function
