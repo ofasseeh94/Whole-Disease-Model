@@ -202,11 +202,17 @@ Public HypoGly_Cycle As Double
 Public HypoGly_Repeat As Integer
 Public HypoGly_DisU_Costs As Variant
 
+'HF variables
 
-Sub Foot_Ulcer(Patient As Patient)
+
+
+
+
+
+Sub Foot_Ulcer(patient As patient)
 
 'Capture patient ID
-Foot_Ulcer_CPID = Patient.ID
+Foot_Ulcer_CPID = patient.ID
 
 'loop through the model
 
@@ -214,7 +220,7 @@ Utility_Temp = 0
 
 For i = 1 To Foot_Ulcer_Repeat
 
-      With Patient
+      With patient
             'if new patient flush previous health state
             If Foot_Ulcer_PPID <> Foot_Ulcer_CPID Then
                   
@@ -247,10 +253,10 @@ ReDim Preserve Mortality_Arr(UBound(Mortality_Arr) + 1)
 Mortality_Arr(UBound(Mortality_Arr)) = 1 - (1 - Foot_Ulcer_Death_TPM(Foot_Ulcer_CHS + 1, 2)) ^ (1 / Cycle_Length)
 
 End Sub
-Sub Nephro(Patient As Patient)
+Sub Nephro(patient As patient)
 
 'Capture patient ID
-Nephro_CPID = Patient.ID
+Nephro_CPID = patient.ID
 
 'loop through the model
 Utility_Temp = 0
@@ -269,7 +275,7 @@ For i = 1 To Nephro_Repeat
       
       End If
       
-      With Patient
+      With patient
       
             'accumulate costs
             .Agg_Cost = .Agg_Cost + Nephro_DisU_Costs(Nephro_CHS + 1, 3)
@@ -291,10 +297,10 @@ ReDim Preserve Mortality_Arr(UBound(Mortality_Arr) + 1)
 Mortality_Arr(UBound(Mortality_Arr)) = 1 - (1 - Nephro_Death_TPM(Nephro_CHS + 1, 2)) ^ (1 / Cycle_Length)
 
 End Sub
-Sub NASH(Patient As Patient)
+Sub NASH(patient As patient)
 
 'Capture patient ID
-NASH_CPID = Patient.ID
+NASH_CPID = patient.ID
 
 'loop through the model
 
@@ -303,7 +309,7 @@ Utility_Temp = 0
 For i = 1 To NASH_Repeat
 
       
-      With Patient
+      With patient
             
             'if new patient flush previous health state
             If NASH_PPID <> NASH_CPID Then
@@ -350,10 +356,10 @@ ReDim Preserve Mortality_Arr(UBound(Mortality_Arr) + 1)
 Mortality_Arr(UBound(Mortality_Arr)) = 1 - (1 - NASH_Death_TPM(NASH_CHS + 1, 2)) ^ (1 / Cycle_Length)
 
 End Sub
-Sub CHD(Patient As Patient)
+Sub CHD(patient As patient)
 
 'Capture patient ID
-CHD_CPID = Patient.ID
+CHD_CPID = patient.ID
 
 'loop through the model
 
@@ -361,7 +367,7 @@ Utility_Temp = 0
 
 For i = 1 To CHD_Repeat
       
-      With Patient
+      With patient
             'if new patient flush previous health state
             If CHD_PPID <> CHD_CPID Then
                   
@@ -394,10 +400,10 @@ ReDim Preserve Mortality_Arr(UBound(Mortality_Arr) + 1)
 Mortality_Arr(UBound(Mortality_Arr)) = 1 - (1 - CHD_Death_TPM(CHD_CHS + 1, 2)) ^ (1 / Cycle_Length)
 
 End Sub
-Sub CKD(Patient As Patient)
+Sub CKD(patient As patient)
 
 'Capture patient ID
-CKD_CPID = Patient.ID
+CKD_CPID = patient.ID
 
 'loop through the model
 
@@ -405,7 +411,7 @@ Utility_Temp = 0
 
 For i = 1 To CKD_Repeat
 
-      With Patient
+      With patient
             'if new patient flush previous health state
             If CKD_PPID <> CKD_CPID Then
                   
@@ -445,10 +451,10 @@ ReDim Preserve Mortality_Arr(UBound(Mortality_Arr) + 1)
 Mortality_Arr(UBound(Mortality_Arr)) = 1 - (1 - CKD_Death_TPM(CKD_CHS + 1, 2)) ^ (1 / Cycle_Length)
 
 End Sub
-Sub DLP(Patient As Patient)
+Sub DLP(patient As patient)
 
 'Capture patient ID
-DLP_CPID = Patient.ID
+DLP_CPID = patient.ID
 
 'loop through the model
 
@@ -456,7 +462,7 @@ Utility_Temp = 0
 
 For i = 1 To DLP_Repeat
       
-      With Patient
+      With patient
             
             'if new patient flush previous health state
             If DLP_PPID <> DLP_CPID Then
@@ -490,7 +496,7 @@ ReDim Preserve Mortality_Arr(UBound(Mortality_Arr) + 1)
 Mortality_Arr(UBound(Mortality_Arr)) = 1 - (1 - DLP_Death_TPM(DLP_CHS + 1, 2)) ^ (1 / Cycle_Length)
 
 End Sub
-Sub DM(Patient As Patient)
+Sub DM(patient As patient)
 
 Dim Temp_Drug_Cost As Double
 
@@ -498,12 +504,12 @@ Dim Temp_Drug_Cost As Double
 
 Utility_Temp = 0
 
-DM_CPID = Patient.ID
+DM_CPID = patient.ID
 
 'loop through the model
 For i = 1 To DM_Repeat
 
-      With Patient
+      With patient
       
             'if new patient flush previous health state
             If DM_PPID <> DM_CPID Then
@@ -518,7 +524,7 @@ For i = 1 To DM_Repeat
             End If
             
             
-            If .DM_Treated = True Then Call Diabetes_Treatment_Sequence_Update(Patient)
+            If .DM_Treated = True Then Call Diabetes_Treatment_Sequence_Update(patient)
    
             'accumulate costs
             .Agg_Cost = .Agg_Cost + DM_DisU_Costs(DM_CHS + 1, 3)
@@ -558,18 +564,18 @@ ReDim Preserve Mortality_Arr(UBound(Mortality_Arr) + 1)
 Mortality_Arr(UBound(Mortality_Arr)) = 1 - (1 - DM_Death_TPM(DM_CHS + 1, 2)) ^ (1 / Cycle_Length)
 
 End Sub
-Sub HTN(Patient As Patient)
+Sub HTN(patient As patient)
 
 'Capture patient ID
 
 Utility_Temp = 0
 
-HTN_CPID = Patient.ID
+HTN_CPID = patient.ID
 
 'loop through the model
 For i = 1 To HTN_Repeat
 
-      With Patient
+      With patient
             'if new patient flush previous health state
             If HTN_PPID <> HTN_CPID Then
                   
@@ -602,18 +608,18 @@ ReDim Preserve Mortality_Arr(UBound(Mortality_Arr) + 1)
 Mortality_Arr(UBound(Mortality_Arr)) = 1 - (1 - HTN_Death_TPM(HTN_CHS + 1, 2)) ^ (1 / Cycle_Length)
 
 End Sub
-Sub MA(Patient As Patient)
+Sub MA(patient As patient)
 
 'Capture patient ID
 
 Utility_Temp = 0
 
-MA_CPID = Patient.ID
+MA_CPID = patient.ID
 
 'loop through the model
 For i = 1 To MA_Repeat
 
-      With Patient
+      With patient
             'if new patient flush previous health state
             If MA_PPID <> MA_CPID Then
                   
@@ -646,18 +652,18 @@ ReDim Preserve Mortality_Arr(UBound(Mortality_Arr) + 1)
 Mortality_Arr(UBound(Mortality_Arr)) = 1 - (1 - MA_Death_TPM(MA_CHS + 1, 2)) ^ (1 / Cycle_Length)
 
 End Sub
-Sub Neuro(Patient As Patient)
+Sub Neuro(patient As patient)
 
 'Capture patient ID
 
 Utility_Temp = 0
 
-Neuro_CPID = Patient.ID
+Neuro_CPID = patient.ID
 
 'loop through the model
 For i = 1 To Neuro_Repeat
 
-      With Patient
+      With patient
             
             'if new patient flush previous health state
             If Neuro_PPID <> Neuro_CPID Then
@@ -691,18 +697,18 @@ ReDim Preserve Mortality_Arr(UBound(Mortality_Arr) + 1)
 Mortality_Arr(UBound(Mortality_Arr)) = 1 - (1 - Neuro_Death_TPM(Neuro_CHS + 1, 2)) ^ (1 / Cycle_Length)
 
 End Sub
-Sub OA(Patient As Patient)
+Sub OA(patient As patient)
 
 'Capture patient ID
 
 Utility_Temp = 0
 
-OA_CPID = Patient.ID
+OA_CPID = patient.ID
 
 'loop through the model
 For i = 1 To OA_Repeat
 
-      With Patient
+      With patient
             'if new patient flush previous health state
             If OA_PPID <> OA_CPID Then
                   
@@ -735,18 +741,18 @@ ReDim Preserve Mortality_Arr(UBound(Mortality_Arr) + 1)
 Mortality_Arr(UBound(Mortality_Arr)) = 1 - (1 - OA_Death_TPM(OA_CHS + 1, 2)) ^ (1 / Cycle_Length)
 
 End Sub
-Sub OSA(Patient As Patient)
+Sub OSA(patient As patient)
 
 'Capture patient ID
 
 Utility_Temp = 0
 
-OSA_CPID = Patient.ID
+OSA_CPID = patient.ID
 
 'loop through the model
 For i = 1 To OSA_Repeat
       
-      With Patient
+      With patient
             
             'if new patient flush previous health state
             If OSA_PPID <> OSA_CPID Then
@@ -780,18 +786,18 @@ ReDim Preserve Mortality_Arr(UBound(Mortality_Arr) + 1)
 Mortality_Arr(UBound(Mortality_Arr)) = 1 - (1 - OSA_Death_TPM(OSA_CHS + 1, 2)) ^ (1 / Cycle_Length)
 
 End Sub
-Sub PVD(Patient As Patient)
+Sub PVD(patient As patient)
 
 'Capture patient ID
 
 Utility_Temp = 0
 
-PVD_CPID = Patient.ID
+PVD_CPID = patient.ID
 
 'loop through the model
 For i = 1 To PVD_Repeat
       
-      With Patient
+      With patient
             
             'if new patient flush previous health state
             If PVD_PPID <> PVD_CPID Then
@@ -825,18 +831,18 @@ ReDim Preserve Mortality_Arr(UBound(Mortality_Arr) + 1)
 Mortality_Arr(UBound(Mortality_Arr)) = 1 - (1 - PVD_Death_TPM(PVD_CHS + 1, 2)) ^ (1 / Cycle_Length)
 
 End Sub
-Sub Retino(Patient As Patient)
+Sub Retino(patient As patient)
 
 'Capture patient ID
 
 Utility_Temp = 0
 
-Retino_CPID = Patient.ID
+Retino_CPID = patient.ID
 
 'loop through the model
 For i = 1 To Retino_Repeat
       
-      With Patient
+      With patient
             'if new patient flush previous health state
             If Retino_PPID <> Retino_CPID Then
                   
@@ -869,18 +875,18 @@ ReDim Preserve Mortality_Arr(UBound(Mortality_Arr) + 1)
 Mortality_Arr(UBound(Mortality_Arr)) = 1 - (1 - Retino_Death_TPM(Retino_CHS + 1, 2)) ^ (1 / Cycle_Length)
 
 End Sub
-Sub Stroke(Patient As Patient)
+Sub Stroke(patient As patient)
 
 'Capture patient ID
 
 Utility_Temp = 0
 
-Stroke_CPID = Patient.ID
+Stroke_CPID = patient.ID
 
 'loop through the model
 For i = 1 To Stroke_Repeat
       
-      With Patient
+      With patient
       
             'if new patient flush previous health state
             If Stroke_PPID <> Stroke_CPID Then
@@ -916,18 +922,18 @@ Mortality_Arr(UBound(Mortality_Arr)) = 1 - (1 - Stroke_Death_TPM(Stroke_CHS + 1,
 End Sub
 
 
-Sub MI(Patient As Patient)
+Sub MI(patient As patient)
 
 'Capture patient ID
 
 Utility_Temp = 0
 
-MI_CPID = Patient.ID
+MI_CPID = patient.ID
 
 'loop through the model
 For i = 1 To MI_Repeat
 
-      With Patient
+      With patient
             'if new patient flush previous health state
             If MI_PPID <> MI_CPID Then
                   
@@ -962,7 +968,7 @@ Mortality_Arr(UBound(Mortality_Arr)) = 1 - (1 - MI_Death_TPM(MI_CHS + 1, 2)) ^ (
 
 End Sub
 
-Sub HypoGly(Patient As Patient)
+Sub HypoGly(patient As patient)
 
 'Always start patient with hypoglycemia
 HypoGly_CHS = HypoGly_Starting_HS
@@ -973,7 +979,7 @@ Utility_Temp = 0
 
 For i = 1 To HypoGly_Repeat
                   
-      With Patient
+      With patient
       
             'accumulate costs
             .Agg_Cost = .Agg_Cost + HypoGly_DisU_Costs(HypoGly_CHS + 1, 3)
@@ -998,7 +1004,7 @@ Mortality_Arr(UBound(Mortality_Arr)) = 1 - (1 - HypoGly_Death_TPM(HypoGly_CHS + 
 
 End Sub
 
-Sub DKA(Patient As Patient)
+Sub DKA(patient As patient)
 
 'Always start patient with DKA
 DKA_CHS = DKA_Starting_HS
@@ -1009,7 +1015,7 @@ Utility_Temp = 0
 
 For i = 1 To DKA_Repeat
                   
-      With Patient
+      With patient
       
             'accumulate costs
             .Agg_Cost = .Agg_Cost + DKA_DisU_Costs(DKA_CHS + 1, 3)

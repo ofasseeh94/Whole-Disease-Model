@@ -5,7 +5,7 @@ Public Sub Engine()
 Application.Calculation = xlCalculationManual
 Application.ScreenUpdating = False
 
-Dim EmptyPatient As Patient
+Dim EmptyPatient As patient
 
 'clear old results
 ThisWorkbook.Sheets("Patient Outcomes").Range("A3:CV1000003").ClearContents
@@ -161,6 +161,9 @@ For j = 1 To UBound(Interventions)
               
                   'loop through cycles
                   For x = 1 To Cycles
+                        
+                       Sheets("SBP_Tracker").Cells(.time_elapsed * 2 + 2, .ID + 3).Value = .SBP
+                       Sheets("DBP_Tracker").Cells(.time_elapsed * 2 + 2, .ID + 3).Value = .DBP
                                                                                                                                                                      
                         If .Dead = True Then GoTo NextPatient
                         

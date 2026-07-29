@@ -70,19 +70,6 @@ Public Function BP_Estimate_SBP_From_Age_BMI(ByVal Age As Double, _
     '
     '====================================================================================
 
-    'Basic input checks.
-    'If inputs are invalid, return 0. The calling subroutine will decide whether to update.
-    If Age <= 0 Then
-        BP_Estimate_SBP_From_Age_BMI = 0
-        Exit Function
-    End If
-
-    If BMI <= 0 Then
-        BP_Estimate_SBP_From_Age_BMI = 0
-        Exit Function
-    End If
-
-
     If Age <= 40 Then
 
         If Female = True Then
@@ -144,10 +131,9 @@ Public Function BP_Estimate_SBP_From_Age_BMI(ByVal Age As Double, _
 End Function
 
 
-Public Sub BP_Update_SBP_By_Delta(ByRef Patient As Patient, _
-                                  ByVal OldAge As Double, _
-                                  ByVal OldBMI As Double, _
-                                  ByVal OldSBP As Double)
+Public Function BP_SBP_Absolute_Change(ByRef patient As patient, _
+                                       ByVal OldAge As Double, _
+                                       ByVal OldBMI As Double) As Double
 
     '====================================================================================
     ' Subroutine:
@@ -191,47 +177,19 @@ Public Sub BP_Update_SBP_By_Delta(ByRef Patient As Patient, _
     Dim ExpectedNewSBP As Double
     Dim DeltaSBP As Double
 
-    With Patient
+    With patient
 
-        'Safety checks.
-        'If any required value is invalid, do not update SBP.
-        If OldAge <= 0 Then Exit Sub
-        If OldBMI <= 0 Then Exit Sub
-        If OldSBP <= 0 Then Exit Sub
-
-        If .Age <= 0 Then Exit Sub
-        If .BMI <= 0 Then Exit Sub
-
-        'Calculate expected SBP at the start of the cycle,
-        'using age and BMI before progression.
+        'Calculate expected SBP at the start of the cycle,using age and BMI before progression.
         ExpectedOldSBP = BP_Estimate_SBP_From_Age_BMI(OldAge, .Female, OldBMI)
 
-        'Calculate expected SBP at the end of the cycle,
-        'using updated age and updated BMI.
+        'Calculate expected SBP at the end of the cycle,using updated age and updated BMI.
         ExpectedNewSBP = BP_Estimate_SBP_From_Age_BMI(.Age, .Female, .BMI)
 
-        'If either expected SBP could not be calculated, do not update.
-        If ExpectedOldSBP <= 0 Then Exit Sub
-        If ExpectedNewSBP <= 0 Then Exit Sub
-
-        'Calculate the expected SBP change caused by age/BMI progression.
+        'Calculate the expected SBP change.
         DeltaSBP = ExpectedNewSBP - ExpectedOldSBP
-
-        'Apply only the expected change to the patient's actual SBP.
-        .SBP = OldSBP + DeltaSBP
-
-        'Clinical plausibility bounds.
-        'These are not from the source equations; they are model safety checks.
-        If .SBP < 80 Then .SBP = 80
-        If .SBP > 260 Then .SBP = 260
-
-        'Logical consistency check:
-        'SBP should usually remain above DBP.
-        If .DBP > 0 Then
-            If .SBP <= .DBP Then .SBP = .DBP + 10
-        End If
+        BP_SBP_Absolute_Change = DeltaSBP
 
     End With
 
-End Sub
+End Function
 

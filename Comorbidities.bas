@@ -12,14 +12,14 @@ Function CapProb(prob As Double) As Double
     End If
 End Function
 
-Function ASCVD_check(Patient As Patient) As Boolean
+Function ASCVD_check(patient As patient) As Boolean
 'SOURCE: Muntner, P., Colantonio, L. D., Cushman, M., Goff, D. C., Jr, Howard, G., Howard, V. J., Kissela, B., Levitan, E. B., Lloyd-Jones, D. M., & Safford, M. M. (2014). Validation of the atherosclerotic cardiovascular disease Pooled Cohort risk equations. JAMA, 311(14), 1406–1415. https://doi.org/10.1001/jama.2014.2630
 'EQUATION IN THE SUPPLEMENTARY
 
 Dim risk As Byte
 Dim risk_score As Boolean
 
-With Patient
+With patient
     risk = Application.WorksheetFunction.Sum(Abs(.Hypertension), Abs(.DLP), Abs(.smoking), Abs(.BMI >= 30))
 
     If risk >= 2 Then risk_score = True
@@ -35,135 +35,310 @@ End With
 
 End Function
 
-Function ProbStroke(Patient As Patient)
+Function ProbStroke(patient As patient) As Double
 
-'Lipid_ratio = Lipid ratio, T: H  - T:H indicates ratio of total:HDL cholesterol.
-'Dim Lipid_ratio As Double
-'Dim Q As Double
-'Dim L As Double
-'Dim a As Double
-'Dim M As Double
-'Dim T As Single
-'Dim TCmmol As Double
-'Dim HDLmmol As Double
-Dim mu, sigma, U As Double
+    'Calculates annual ischemic stroke probability using the Hunter et al 2022
+    'age-specific logistic regression equations.
+    '
+    'Source:
+    'Hunter E, Kelleher JD. Age Specific Models to Capture the Change in Risk
+    'Factor Contribution by Age to Short Term Primary Ischemic Stroke Risk.
+    'Frontiers in Neurology. 2022;13:803749.
+    'DOI: https://doi.org/10.3389/fneur.2022.803749
+    '
+    'The Hunter equations estimate 5-year primary ischemic stroke risk using
+    'separate logistic regression equations by age group:
+    '   <50
+    '   50-59
+    '   60-69
+    '   70+
+    '
+    'The continuous predictors SBP, DBP, and BMI are standardized:
+    '   zSBP = (patient SBP - age-group mean SBP) / age-group SD SBP
+    '   zDBP = (patient DBP - age-group mean DBP) / age-group SD DBP
+    '   zBMI = (patient BMI - age-group mean BMI) / age-group SD BMI
+    '
+    'The mean and SD values are taken from the model-generated baseline population
+    'and stored in the Excel named range Stroke_Risk_Reference_Table.
+    '
+    'This function returns annual probability so the existing model cycle logic can
+    'continue to apply:
+    '   cycle probability = 1 - (1 - annual probability) ^ Cycle_Length
 
-With Patient
-          
-  'Source:Anderson, K. M., Odell, P. M., Wilson, P. W., & Kannel, W. B. (1991). Cardiovascular disease risk profiles. American heart journal, 121(1 Pt 2), 293–298. https://doi.org/10.1016/0002-8703(91)90861-b
-  'This is the equation for i year probability of stroke
-mu = 25.1067 _
-    + Abs(.Female) * 0.1558 _
-    + Log(.Age) * -3.0997 _
-    + 0 * (Log(.Age) * Abs(.Female) _
-        + 0 * ((Log(.Age)) ^ 2 * Abs(.Female))) _
-    + -1.7556 * Log(.DBP) _
-    + -0.3975 * Abs(.smoking) _
-    + 0.0297 * Log(.TC / .HDL) _
-    + -0.4047 * Abs(.DM) _
-    + -0.2506 * (Abs(.DM) * Abs(.Female)) _
-    + -0.2801 * .LVH _
-    + 0 * (Abs(.LVH) * Abs(Abs(.Female) - 1))
-          
+    Dim StrokeReference As Variant
 
-          sigma = Exp(-0.4212 + 0 * mu)
-          
-          U = (Log(4) - mu) / sigma
-          
-          ProbStroke = 1 - Exp(-Exp(U))
-          ProbStroke = 1 - (1 - ProbStroke) ^ (1 / 4)
-      
-          'adjusting the risk of stroke to BMI
-          'source: Liu X, et al., A J-shaped relation of BMI and stroke: Systematic review and doseeresponse metaanalysis of 4.43 million participants, Nutrition, Metabolism & Cardiovascular Diseases (2018), https://doi.org/10.1016/ j.numecd.2018.07.004
-          'the reported RR data was parametrized using curve expert professional to produce this equation
-          'ProbStroke = ProbStroke * (2.44677054944366 + 1.45708742314377 * Cos(6.85415964516995E-02 * .BMI + 1.69241280922106))
+    Dim AgeGroupRow As Single
+    Dim Male As Single
+    Dim AF As Single
+    Dim Diabetes As Single
+    Dim CigarettesPerDay As Single
 
-      
-      'Adjust TC and HDL from mg/dl to mmol/L
-      'Reference: Haney EM, Huffman LH, Bougatsos C, et al. Screening for Lipid Disorders in Children and Adolescents [Internet]. Rockville (MD): Agency for Healthcare Research and Quality (US); 2007 Jul. (Evidence Syntheses, No. 47.) Appendix 2. Units of Measure Conversion Formulas.
-      'TCmmol = .TC * 0.02586
-      'HDLmmol = .HDL * 0.02586
-      
-     ' Lipid_ratio = .TC / .HDL
-    '  T = .Age - .DM_Diagnosis_Age
-      
-     ' If .DM = True Then
-            ' in case patient is diabetic
-            'Reference: Kothari, V., Stevens, R. J., Adler, A. I., Stratton, I. M., Manley, S. E., Neil, H. A., & Holman, R. R. (2002). UKPDS 60: risk of stroke in type 2 diabetes estimated by the UK Prospective Diabetes Study risk engine. Stroke, 33(7), 1776-1781.
-    '        Q = 0.00186 * 1.092 ^ (.DM_Diagnosis_Age - 55) * 0.7 ^ Abs(.Female) * 1.547 ^ Abs(.smoking) * 8.554 ^ Abs(.AF) * 1.122 ^ ((.SBP - 135.5) / 10) * 1.138 ^ (Lipid_ratio - 5.11)
-            
-   '         ProbStroke = 1 - Exp(-Q * 1.145 ^ T * (1 - 1.145 ^ 1) / (1 - 1.145))
+    Dim MeanSBP As Single
+    Dim SDSBP As Single
+    Dim MeanDBP As Single
+    Dim SDDBP As Single
+    Dim MeanBMI As Single
+    Dim SDBMI As Single
 
-   '   Else
-            'in case patient is not diabetic
-            ''Reference: Wolf, P. A., D'Agostino, R. B., Belanger, A. J., & Kannel, W. B. (1991). Probability of stroke: a risk profile from the Framingham Study. Stroke, 22(3), 312-318.
-    '        If .Female = True Then
-                  'in case of female
- '                 L = 0.0657 * .Age + 0.0197 * .SBP + 2.5432 * Abs(.anti_htn_drugs) - 0.0134 * .SBP * Abs(.anti_htn_drugs) + 0.5442 * Abs(.DM) + 0.5294 * Abs(.smoking) + 0.4326 * Abs(.CHD) + 1.1497 * Abs(.AF) + 0.8488 * Abs(.LVH)
-  '                'is the average female patient value
-  '                M = 7.5766
-   '               a = L - M
-                  ' one year = 0.9977 female
-   '               ProbStroke = 1 - 0.9977 ^ Exp(a)
-          '  Else
-                  'in case of male
-    '              L = 0.0505 * .Age + 0.014 * .SBP + 0.3263 * Abs(.anti_htn_drugs) + 0.3384 * Abs(.DM) + 0.5147 * Abs(.smoking) + 0.5195 * Abs(.CHD) + 0.6061 * Abs(.AF) + 0.8415 * Abs(.LVH)
-                  'is the mean male patient value
-      '            M = 5.677
-       '           a = L - M
-                  ' one year = 0.9948 male
-         '        ProbStroke = 1 - 0.9948 ^ Exp(a)
-       '     End If
-            
-     ' End If
-'UKPDS 68 EQUATION: Patients must be diabetic
-'    Dim lambda As Double
-'    Dim rho As Double
-'    Dim xb As Double
-'    Dim integratedHazard As Double
-'    Dim AgeInp As Double, HbA1CInp As Double, SBPInp As Double, TOTALHDL As Double
-'
-'
-'    ' Weibull parameters for MI
-'    lambda = -7.163
-'    rho = 1.497
-'
-'    ' Apply UKPDS variable transformations
-'    AgeInp = .DM_Diagnosis_Age - 52.59
-'    HbA1CInp = .HbA1C - 7.09
-'    SBPInp = (.SBP - 135.09) / 10
-'    TOTALHDL = (.TC / .HDL - 5.23)
-'
-'    ' Linear predictor for MI
-'    xb = lambda _
-'        + 0.085 * AgeInp _
-'        - 0.516 * Abs(.Female) _
-'        + 0.355 * Abs(.smoking) _
-'        + 0.128 * HbA1CInp _
-'        + 0.276 * SBPInp _
-'        + 1.19 * TOTALHDL _
-'        + 1.742 * Abs(.HF) _
-'        + 1.428 * Abs(.AF)
+    Dim zSBP As Single
+    Dim zDBP As Single
+    Dim zBMI As Single
 
-'    ' Integrated hazard from year t to t+1
-'    integratedHazard = Exp(xb) * (((2) ^ rho) - (1 ^ rho))
-'
-'    ' Annual probability
-'    ProbStroke = 1 - Exp(-integratedHazard)
-'
-'      End With
+    Dim LinearPredictor As Single
+    Dim FiveYearStrokeProbability As Single
 
-'ProbMI = Temp
+    With patient
 
+        'Load the reference table created on the StrokeRisk sheet.
+        'Table structure:
+        '   Column 1 = AgeGroup
+        '   Column 2 = Mean_SBP
+        '   Column 3 = SD_SBP
+        '   Column 4 = Mean_DBP
+        '   Column 5 = SD_DBP
+        '   Column 6 = Mean_BMI
+        '   Column 7 = SD_BMI
+        StrokeReference = Range("Stroke_Risk_Reference_Table")
 
-End With
+        'Select the Hunter age-group equation and the matching reference row.
+        If .Age < 50 Then
+            AgeGroupRow = 2
+        ElseIf .Age < 60 Then
+            AgeGroupRow = 3
+        ElseIf .Age < 70 Then
+            AgeGroupRow = 4
+        Else
+            AgeGroupRow = 5
+        End If
+
+        'Convert model Booleans to 0/1 indicators.
+        'Hunter uses male as the sex indicator.
+        If .Female = True Then
+            Male = 0
+        Else
+            Male = 1
+        End If
+
+        If .AF = True Then
+            AF = 1
+        Else
+            AF = 0
+        End If
+
+        If .DM = True Then
+            Diabetes = 1
+        Else
+            Diabetes = 0
+        End If
+
+        CigarettesPerDay = CDbl(.Number_of_cigaretts)
+
+        'Read age-group-specific reference values.
+        MeanSBP = CDbl(StrokeReference(AgeGroupRow, 2))
+        SDSBP = CDbl(StrokeReference(AgeGroupRow, 3))
+        MeanDBP = CDbl(StrokeReference(AgeGroupRow, 4))
+        SDDBP = CDbl(StrokeReference(AgeGroupRow, 5))
+        MeanBMI = CDbl(StrokeReference(AgeGroupRow, 6))
+        SDBMI = CDbl(StrokeReference(AgeGroupRow, 7))
+
+        'Standardize current patient values against the fixed baseline reference values.
+        zSBP = (.SBP - MeanSBP) / SDSBP
+        zDBP = (.DBP - MeanDBP) / SDDBP
+        zBMI = (.BMI - MeanBMI) / SDBMI
+
+        'Apply Hunter age-group-specific logistic regression equation.
+        Select Case AgeGroupRow
+
+            Case 2      '<50
+
+                LinearPredictor = _
+                    -6.024 _
+                    + (0.05 * Male) _
+                    + (0.57 * zSBP) _
+                    + (0.09 * zDBP) _
+                    + (0.21 * zBMI) _
+                    + (0.003 * CigarettesPerDay) _
+                    + (1.18 * AF) _
+                    - (0.42 * Diabetes)
+
+            Case 3      '50-59
+
+                LinearPredictor = _
+                    -4.991 _
+                    + (0.14 * Male) _
+                    + (0.2 * zSBP) _
+                    + (0.42 * zDBP) _
+                    + (0.17 * zBMI) _
+                    - (0.007 * CigarettesPerDay) _
+                    + (1.78 * AF) _
+                    + (1.04 * Diabetes)
+
+            Case 4      '60-69
+
+                LinearPredictor = _
+                    -3.992 _
+                    - (0.15 * Male) _
+                    + (0.31 * zSBP) _
+                    + (0.24 * zDBP) _
+                    + (0.02 * zBMI) _
+                    + (0.03 * CigarettesPerDay) _
+                    + (2.28 * AF) _
+                    + (1.12 * Diabetes)
+
+            Case 5      '70+
+
+                LinearPredictor = _
+                    -3.205 _
+                    + (0.12 * Male) _
+                    + (0.15 * zSBP) _
+                    + (0.25 * zDBP) _
+                    + (0.05 * zBMI) _
+                    + (0.02 * CigarettesPerDay) _
+                    + (2.68 * AF) _
+                    + (0.21 * Diabetes)
+
+        End Select
+
+        'Convert logistic linear predictor to 5-year stroke probability.
+        FiveYearStrokeProbability = 1 / (1 + Exp(-LinearPredictor))
+
+        'Convert 5-year probability to annual probability.
+        'The model event block will then convert annual probability to cycle probability.
+        ProbStroke = 1 - (1 - FiveYearStrokeProbability) ^ (1 / 5)
+
+    End With
 
 End Function
 
-Function ProbDiabetes(Patient As Patient)
+'Function ProbStroke(Patient As Patient)
+'
+''Lipid_ratio = Lipid ratio, T: H  - T:H indicates ratio of total:HDL cholesterol.
+''Dim Lipid_ratio As Double
+''Dim Q As Double
+''Dim L As Double
+''Dim a As Double
+''Dim M As Double
+''Dim T As Single
+''Dim TCmmol As Double
+''Dim HDLmmol As Double
+'Dim mu, sigma, U As Double
+'
+'With Patient
+'
+'  'Source:Anderson, K. M., Odell, P. M., Wilson, P. W., & Kannel, W. B. (1991). Cardiovascular disease risk profiles. American heart journal, 121(1 Pt 2), 293–298. https://doi.org/10.1016/0002-8703(91)90861-b
+'  'This is the equation for i year probability of stroke
+'mu = 25.1067 _
+'    + Abs(.Female) * 0.1558 _
+'    + Log(.Age) * -3.0997 _
+'    + 0 * (Log(.Age) * Abs(.Female) _
+'        + 0 * ((Log(.Age)) ^ 2 * Abs(.Female))) _
+'    + -1.7556 * Log(.DBP) _
+'    + -0.3975 * Abs(.smoking) _
+'    + 0.0297 * Log(.TC / .HDL) _
+'    + -0.4047 * Abs(.DM) _
+'    + -0.2506 * (Abs(.DM) * Abs(.Female)) _
+'    + -0.2801 * .LVH _
+'    + 0 * (Abs(.LVH) * Abs(Abs(.Female) - 1))
+'
+'
+'          sigma = Exp(-0.4212 + 0 * mu)
+'
+'          U = (Log(4) - mu) / sigma
+'
+'          ProbStroke = 1 - Exp(-Exp(U))
+'          ProbStroke = 1 - (1 - ProbStroke) ^ (1 / 4)
+'
+'          'adjusting the risk of stroke to BMI
+'          'source: Liu X, et al., A J-shaped relation of BMI and stroke: Systematic review and doseeresponse metaanalysis of 4.43 million participants, Nutrition, Metabolism & Cardiovascular Diseases (2018), https://doi.org/10.1016/ j.numecd.2018.07.004
+'          'the reported RR data was parametrized using curve expert professional to produce this equation
+'          'ProbStroke = ProbStroke * (2.44677054944366 + 1.45708742314377 * Cos(6.85415964516995E-02 * .BMI + 1.69241280922106))
+'
+'
+'      'Adjust TC and HDL from mg/dl to mmol/L
+'      'Reference: Haney EM, Huffman LH, Bougatsos C, et al. Screening for Lipid Disorders in Children and Adolescents [Internet]. Rockville (MD): Agency for Healthcare Research and Quality (US); 2007 Jul. (Evidence Syntheses, No. 47.) Appendix 2. Units of Measure Conversion Formulas.
+'      'TCmmol = .TC * 0.02586
+'      'HDLmmol = .HDL * 0.02586
+'
+'     ' Lipid_ratio = .TC / .HDL
+'    '  T = .Age - .DM_Diagnosis_Age
+'
+'     ' If .DM = True Then
+'            ' in case patient is diabetic
+'            'Reference: Kothari, V., Stevens, R. J., Adler, A. I., Stratton, I. M., Manley, S. E., Neil, H. A., & Holman, R. R. (2002). UKPDS 60: risk of stroke in type 2 diabetes estimated by the UK Prospective Diabetes Study risk engine. Stroke, 33(7), 1776-1781.
+'    '        Q = 0.00186 * 1.092 ^ (.DM_Diagnosis_Age - 55) * 0.7 ^ Abs(.Female) * 1.547 ^ Abs(.smoking) * 8.554 ^ Abs(.AF) * 1.122 ^ ((.SBP - 135.5) / 10) * 1.138 ^ (Lipid_ratio - 5.11)
+'
+'   '         ProbStroke = 1 - Exp(-Q * 1.145 ^ T * (1 - 1.145 ^ 1) / (1 - 1.145))
+'
+'   '   Else
+'            'in case patient is not diabetic
+'            ''Reference: Wolf, P. A., D'Agostino, R. B., Belanger, A. J., & Kannel, W. B. (1991). Probability of stroke: a risk profile from the Framingham Study. Stroke, 22(3), 312-318.
+'    '        If .Female = True Then
+'                  'in case of female
+' '                 L = 0.0657 * .Age + 0.0197 * .SBP + 2.5432 * Abs(.anti_htn_drugs) - 0.0134 * .SBP * Abs(.anti_htn_drugs) + 0.5442 * Abs(.DM) + 0.5294 * Abs(.smoking) + 0.4326 * Abs(.CHD) + 1.1497 * Abs(.AF) + 0.8488 * Abs(.LVH)
+'  '                'is the average female patient value
+'  '                M = 7.5766
+'   '               a = L - M
+'                  ' one year = 0.9977 female
+'   '               ProbStroke = 1 - 0.9977 ^ Exp(a)
+'          '  Else
+'                  'in case of male
+'    '              L = 0.0505 * .Age + 0.014 * .SBP + 0.3263 * Abs(.anti_htn_drugs) + 0.3384 * Abs(.DM) + 0.5147 * Abs(.smoking) + 0.5195 * Abs(.CHD) + 0.6061 * Abs(.AF) + 0.8415 * Abs(.LVH)
+'                  'is the mean male patient value
+'      '            M = 5.677
+'       '           a = L - M
+'                  ' one year = 0.9948 male
+'         '        ProbStroke = 1 - 0.9948 ^ Exp(a)
+'       '     End If
+'
+'     ' End If
+''UKPDS 68 EQUATION: Patients must be diabetic
+''    Dim lambda As Double
+''    Dim rho As Double
+''    Dim xb As Double
+''    Dim integratedHazard As Double
+''    Dim AgeInp As Double, HbA1CInp As Double, SBPInp As Double, TOTALHDL As Double
+''
+''
+''    ' Weibull parameters for MI
+''    lambda = -7.163
+''    rho = 1.497
+''
+''    ' Apply UKPDS variable transformations
+''    AgeInp = .DM_Diagnosis_Age - 52.59
+''    HbA1CInp = .HbA1C - 7.09
+''    SBPInp = (.SBP - 135.09) / 10
+''    TOTALHDL = (.TC / .HDL - 5.23)
+''
+''    ' Linear predictor for MI
+''    xb = lambda _
+''        + 0.085 * AgeInp _
+''        - 0.516 * Abs(.Female) _
+''        + 0.355 * Abs(.smoking) _
+''        + 0.128 * HbA1CInp _
+''        + 0.276 * SBPInp _
+''        + 1.19 * TOTALHDL _
+''        + 1.742 * Abs(.HF) _
+''        + 1.428 * Abs(.AF)
+'
+''    ' Integrated hazard from year t to t+1
+''    integratedHazard = Exp(xb) * (((2) ^ rho) - (1 ^ rho))
+''
+''    ' Annual probability
+''    ProbStroke = 1 - Exp(-integratedHazard)
+''
+''      End With
+'
+''ProbMI = Temp
+'
+'
+'End With
+'
+'End Function
+
+Function ProbDiabetes(patient As patient)
 'Source: Lacy ME, Wellenius GA, Carnethon MR, Loucks EB, Carson AP, Luo X, et al. Racial Differences in the Performance of Existing Risk Prediction Models for Incident Type 2 Diabetes: The CARDIA Study. Diabetes Care [Internet]. 2016 Jan 11 [cited 2023 Dec 29];39(2):285–91. Available from: https://www.ncbi.nlm.nih.gov/pmc/articles/PMC4722943/ Print
 
-With Patient
+With patient
 
 'Dim HeightCoff As Single
 
@@ -195,10 +370,10 @@ End With
 
 End Function
 
-Function ProbHTN(Patient As Patient) As Double
+Function ProbHTN(patient As patient) As Double
 'Source: Kawasoe M, Kawasoe S, Kubozono T, Ojima S, Kawabata T, Ikeda Y, Oketani N, Miyahara H, Tokushige K, Miyata M, Ohishi M. Development of a risk prediction score for hypertension incidence using Japanese health checkup data. Hypertension Research. 2022 Apr;45(4):730-40.
 
-With Patient
+With patient
 
       ProbHTN = -16.428 + 0.0364 * .Age + 0.0632 * .BMI + 0.067 * .SBP + 0.0439 * .DBP + 0.3556 * Abs(.smoking) + 0.3639 * 0.5
       
@@ -211,7 +386,7 @@ End With
 
 End Function
 
-Function ProbOSA(Patient As Patient) As Double
+Function ProbOSA(patient As patient) As Double
 
     ' Source: Tishler PV, Larkin EK, Schluchter MD, Redline S. Incidence of sleep-disordered breathing in an urban adult population: the relative importance of risk factors in the development of sleep-disordered breathing. Jama. 2003 May 7;289(17):2230-7.
     ' Threshold: AHI >= 15, variability-adjusted (7.5% 5-year incidence)
@@ -221,7 +396,7 @@ Function ProbOSA(Patient As Patient) As Double
     Dim P5yr  As Double
     Dim Male  As Double
 
-    With Patient
+    With patient
         Male = IIf(.Female, 0, 1)
         Age10 = .Age / 10
 
@@ -268,13 +443,13 @@ End Function
 '    End With
 '
 'End Function
-Function ProbOA(Patient As Patient) As Double
+Function ProbOA(patient As patient) As Double
 'Source: https://wrap.warwick.ac.uk/38642/1/WRAP_Muir_Ann_Rheum_Dis-2011-Zhang-1599-604.pdf
 ' Nottingham knee osteoarthritis risk prediction models
 ' Occupational_risk_OA is a string variable: 0=never, 1=seldom, 2=sometimes, 3=often, 4=always
 Dim OA_risk As Integer
 
-With Patient
+With patient
 
       Select Case .occupational_risk_OA
             Case Is = "never":            OA_risk = 0
@@ -296,7 +471,7 @@ End With
 
 End Function
 
-Function ProbMI(Patient As Patient)
+Function ProbMI(patient As patient)
 'This is the equation for 1 year probability of MI (Myocardial infaction)
 'VALIDATED
 'Source: D'Agostino, R. B., Russell, M. W., Huse, D. M., Ellison, R. C., Silbershatz, H., Wilson, P. W., & Hartz, S. C. (2000). Primary and subsequent coronary risk appraisal: new results from the Framingham study. American heart journal, 139(2 Pt 1), 272–281. https://doi.org/10.1067/mhj.2000.96469
@@ -312,7 +487,7 @@ Dim mu As Double
 Dim sigma As Double
 Dim U As Double
 
-      With Patient
+      With patient
 'Source:Anderson, K. M., Odell, P. M., Wilson, P. W., & Kannel, W. B. (1991). Cardiovascular disease risk profiles. American heart journal, 121(1 Pt 2), 293–298. https://doi.org/10.1016/0002-8703(91)90861-b
 'This is the equation for 1 year probability of MI
           mu = 11.0436 + Abs(.Female) * 5.1559 + Log(.Age) * -0.9302 + -2.631 * (Log(.Age) * Abs(.Female)) + _
@@ -392,12 +567,12 @@ Dim U As Double
 
 End Function
 
-Function ProbCHD(Patient As Patient)
+Function ProbCHD(patient As patient)
 'Source: Anderson KM, Odell PM, Wilson PW, Kannel WB. Cardiovascular disease risk profiles. American heart journal. 1991 Jan 1;121(1):293-8.
 Dim mu As Double
 Dim sigma As Double
 Dim U As Double
-With Patient
+With patient
 
  mu = 15.5222 + Abs(.Female) * 32.4811 + Log(.Age) * -1.6346 + -16.4933 * (Log(.Age) * Abs(.Female)) + _
           2.1059 * ((Log(.Age)) ^ 2 * Abs(.Female)) + _
@@ -417,10 +592,10 @@ End With
 
 End Function
 
-Function ProbNASH(Patient As Patient)
+Function ProbNASH(patient As patient)
 'Dim HDLmmol  As Single, UAmicromol As Single, TGmmol As Double
 Dim UAmicromol As Double, HDLmmol As Double, TGmmol As Double
-With Patient
+With patient
 
 UAmicromol = .Uric_Acid * 59.48
 HDLmmol = .HDL * 0.02586
@@ -444,9 +619,9 @@ ProbNASH = ProbNASH * 0.2
 
 End Function
 
-Function ProbDLP(Patient As Patient) As Double
+Function ProbDLP(patient As patient) As Double
 'Source: Yang X, Xu C, Wang Y, Cao C, Qin T, Zhan S, et al. Risk prediction model of dyslipidaemia over a 5-year period based on the Taiwan MJ health check-up longitudinal database. Lipids in Health and Disease [Internet]. 2018 Nov 17 [cited 2023 Dec 26];17(1). Available from: https://lipidworld.biomedcentral.com/articles/10.1186/s12944-018-0906-2 Print
-With Patient
+With patient
 'this equation was not used as the lower part is used since it is more clinically defenisble and more clinically plausible
 'If .Age < 35 Then
 '
@@ -506,12 +681,12 @@ End If
 End With
 End Function
 
-Function probKeto(Patient As Patient)
+Function probKeto(patient As patient)
 
 'check if patient is diabetic or not
 'Source: Davis TME, Davis W. Incidence and associates of diabetic ketoacidosis in a community-based cohort: the Fremantle Diabetes Study Phase II. BMJ Open Diabetes Res Care. 2020;8(1):e000983. doi:10.1136/bmjdrc-2019-000983
 
-With Patient
+With patient
 ' DM_type1= true means type 1 DM.
 If .DM = True Then
 
@@ -532,9 +707,9 @@ End With
 
 End Function
 
-Function ProbMA(Patient As Patient) As Double
+Function ProbMA(patient As patient) As Double
 Dim DM_duration As Double
-With Patient
+With patient
 
 If .Retino = True And .DM = True Then
             
@@ -569,7 +744,7 @@ End With
 
 End Function
 
-Function ProbNephro(Patient As Patient)
+Function ProbNephro(patient As patient)
 Dim DM_duration As Double
 Dim HbA1Cmmol As Double
 
@@ -578,7 +753,7 @@ Dim HbA1Cmmol As Double
 'Reference for HbA1Cmmol: https://ebmcalc.com/GlycemicAssessment.htm
 'Reference for TCmmol: Haney EM, Huffman LH, Bougatsos C, et al. Screening for Lipid Disorders in Children and Adolescents [Internet]. Rockville (MD): Agency for Healthcare Research and Quality (US); 2007 Jul. (Evidence Syntheses, No. 47.) Appendix 2. Units of Measure Conversion Formulas.
 
-With Patient
+With patient
 
 'HbA1Cmmol = (28.7 * .HbA1C - 46.7) / 18.015
 
@@ -626,7 +801,7 @@ End With
 
 End Function
 
-Function ProbUlcer(Patient As Patient) As Double
+Function ProbUlcer(patient As patient) As Double
 
     '-------------------------------------------------------------------------
     ' Purpose:
@@ -654,7 +829,7 @@ Function ProbUlcer(Patient As Patient) As Double
     Dim CumulativeRisk As Double
     Dim WeibullShape As Double
 
-    With Patient
+    With patient
 
         '---------------------------------------------------------------------
         ' The ulcer risk is only estimated for patients with diabetes.
@@ -772,9 +947,9 @@ Function ProbUlcer(Patient As Patient) As Double
     End With
 
 End Function
-Function ProbHypogly(Patient As Patient)
+Function ProbHypogly(patient As patient)
 ' these values are for the major hypoglycemic events. As per the interviews with the clinical experts, they mentioned the major hypoglycemic events are the cost drivers and minor events are low cost.
- With Patient
+ With patient
  
       If IsNull(.Diabetes_treatment_ID) Or .Diabetes_treatment_ID = 0 Then
       
@@ -790,7 +965,7 @@ Function ProbHypogly(Patient As Patient)
 End With
 
 End Function
-Function ProbRetino(Patient As Patient) As Double
+Function ProbRetino(patient As patient) As Double
 'Source: Fe'li SN, Emamian MH, Yaseri M, et al. Development and validation of prediction models for diabetic retinopathy in type 2 diabetes patients. PLoS One. 2025;20(7):e0325814. Published 2025 Jul 10. doi:10.1371/journal.pone.0325814
 'Note that in the article BG is non-fasting blood glucose. we used estimated average as proxy.
 Dim DM_duration As Double
@@ -799,7 +974,7 @@ Dim MBP As Double
 Dim LP5 As Double
 Dim ProbRetino5 As Double
 
-With Patient
+With patient
 
 If .DM = True Then
 
@@ -822,7 +997,7 @@ End With
 
 End Function
 
-Function ProbNeuro(Patient As Patient)
+Function ProbNeuro(patient As patient)
 'this is focused on diabetic neuropathy not neuropathy in general
 
 Dim DiabetesDuration As Double
@@ -830,7 +1005,7 @@ Dim WeibullShape As Byte
 Dim LinearPredictor As Double
 Dim CumulativeRisk As Double
 
-With Patient
+With patient
       If .DM = True Then
         
             DiabetesDuration = .Age - .DM_Diagnosis_Age
@@ -885,7 +1060,7 @@ End With
 End Function
 
 
-Function ProbPVD(Patient As Patient)
+Function ProbPVD(patient As patient)
 
   'Refernce:Murabito, J. M., D'Agostino, R. B., Silbershatz, H., & Wilson, W. F. (1997). Intermittent claudication. A risk profile from The Framingham Heart Study
   'https://www.ahajournals.org/doi/10.1161/01.CIR.96.1.44
@@ -895,7 +1070,7 @@ Function ProbPVD(Patient As Patient)
     Dim L As Double
     Dim P As Double
 
-    With Patient
+    With patient
    
 
 'BPC = Blood Pressure Coefficient
@@ -946,9 +1121,9 @@ Function ProbPVD(Patient As Patient)
     
 End Function
 
-Function ProbCKD(Patient As Patient) As Double
+Function ProbCKD(patient As patient) As Double
 'Source: Chien KL, Lin HJ, Lee BC, Hsu HC, Lee YT, Chen MF. A prediction model for the risk of incident chronic kidney disease. The American journal of medicine. 2010 Sep 1;123(9):836-46.
-With Patient
+With patient
 
     ' Calculate the score for age
       Dim ageScore As Integer
@@ -1073,7 +1248,7 @@ End With
 
 End Function
 
-Function ProbHF(Patient As Patient)
+Function ProbHF(patient As patient)
 'Source: Khan, S. S., Ning, H., Shah, S. J., Yancy, C. W., Carnethon, M., Berry, J. D., Mentz, R. J., O'Brien, E., Correa, A., Suthahar, N., de Boer, R. A., Wilkins, J. T., & Lloyd-Jones, D. M. (2019). 10-Year Risk Equations for Incident Heart Failure in the General Population. Journal of the American College of Cardiology, 73(19), 2388–2397. https://doi.org/10.1016/j.jacc.2019.02.057
 
 'ProbHF =

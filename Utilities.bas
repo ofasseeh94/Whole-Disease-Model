@@ -1,7 +1,7 @@
 Attribute VB_Name = "Utilities"
 Option Explicit
 
-Function Agg_Utility(Disutility_Arr() As Double, Patient As Patient, Optional Utility_Method As String = "ADE") As Double
+Function Agg_Utility(Disutility_Arr() As Double, patient As patient, Optional Utility_Method As String = "ADE") As Double
 'This function aggregates the impact of various disutilities in the model to provide the final utility index value of the patient after considering all the effects
 'this function allows the choice of the aggregation methods
 
@@ -16,13 +16,13 @@ Select Case Utility_Method     ' Choose the aggregation method based on the user
       'already experienced. Consequently, the absolute disutility for each additional
       'condition occurs at a diminishing rate. For higher numbers of morbidities, the
       'multiplicative approach would tend towards zero
-      Agg_Utility = Product_NotZero(Disutility_Arr) * BaseUtilityProxy(Patient)
+      Agg_Utility = Product_NotZero(Disutility_Arr) * BaseUtilityProxy(patient)
       
       Case "Additive"
       'the additive model is assumed to be equivalent to
       'the sum of the disutilities measured in populations with only the individual conditions
       
-            Temp_Utility = BaseUtilityProxy(Patient)
+            Temp_Utility = BaseUtilityProxy(patient)
             'convert multiplicative disutilities to subtractive disutilities assuming the base utility
             For k = LBound(Disutility_Arr) To UBound(Disutility_Arr)
             
@@ -57,7 +57,7 @@ Select Case Utility_Method     ' Choose the aggregation method based on the user
             
             Next k
             
-            Agg_Utility = Application.WorksheetFunction.Min(Disutility_Arr) * BaseUtilityProxy(Patient)
+            Agg_Utility = Application.WorksheetFunction.Min(Disutility_Arr) * BaseUtilityProxy(patient)
       
       Case "ADE"
       'The adjusted decrement estimator (ADE) assumes that the upper limit for the utility
@@ -65,20 +65,20 @@ Select Case Utility_Method     ' Choose the aggregation method based on the user
       'from the set of health state utility values166. Furthermore, each additional health state
       'utility value is a function of the health state utility values patients already have,
       'adjusted by the minimum value.
-            Agg_Utility = ADE(Disutility_Arr, BaseUtilityProxy(Patient))
+            Agg_Utility = ADE(Disutility_Arr, BaseUtilityProxy(patient))
       
       Case "Jia 2005 only"
       'Exclude the effect of all the extra disutilities and rely only on the conditions included in the initial regression equation
-            Agg_Utility = BaseUtilityProxyAll(Patient)
+            Agg_Utility = BaseUtilityProxyAll(patient)
 
 End Select
 
 
 End Function
 
-Function BaseUtilityProxy(Patient As Patient)
+Function BaseUtilityProxy(patient As patient)
 
-With Patient
+With patient
 
 'All comorbidities turned off to be handled from submodels
       BaseUtilityProxy = UtilityIndex(.Age, .Female, "White", 3, .smoking, .physical_activity, False, _
@@ -88,9 +88,9 @@ End With
 
 End Function
 
-Function BaseUtilityProxyAll(Patient As Patient)
+Function BaseUtilityProxyAll(patient As patient)
 
-With Patient
+With patient
 
       BaseUtilityProxyAll = UtilityIndex(.Age, .Female, "White", 3, .smoking, .physical_activity, False, _
       .Hypertension, .DM, .CHD, .Stroke_history, False, .BMI)

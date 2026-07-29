@@ -23,7 +23,7 @@ FirstOnset As Single
 
 End Type
 
-Type Patient                              ' Create user-defined type.
+Type patient                              ' Create user-defined type.
       
       'Patient characteristics
       ID As Long                          'Define elements of data type.
@@ -303,7 +303,7 @@ Dim j As Long
 
 End Sub
 
-Public Sub Paste_Patient_Characteristics(Patients() As Patient, InterventionCount As Long)
+Public Sub Paste_Patient_Characteristics(Patients() As patient, InterventionCount As Long)
     Dim ws As Worksheet
     Set ws = ThisWorkbook.Sheets("Patient Outcomes")
     Dim i As Long
@@ -419,7 +419,7 @@ Public Sub Paste_Patient_Characteristics(Patients() As Patient, InterventionCoun
 
 End Sub
 
-Public Sub StorePatientArray(Patients() As Patient, NInterventions As Byte, NPatients As Long, Niterations As Long)
+Public Sub StorePatientArray(Patients() As patient, NInterventions As Byte, NPatients As Long, Niterations As Long)
         
     Dim i As Long
 

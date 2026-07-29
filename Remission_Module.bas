@@ -1,9 +1,9 @@
 Attribute VB_Name = "Remission_Module"
 Option Explicit
 
-Function Prob_DM_Rem(Patient As Patient, intervention As intervention)
+Function Prob_DM_Rem(patient As patient, intervention As intervention)
 
-With Patient
+With patient
 
 Dim i As Integer
 Dim NumDiabMeds As Integer
@@ -39,9 +39,9 @@ End With
 
 End Function
 
-Function Prob_DM_Relapse(Patient As Patient, intervention As intervention) As Double
+Function Prob_DM_Relapse(patient As patient, intervention As intervention) As Double
 'Source: Aminian A, Vidal J, Salminen P, Still CD, Nor Hanipah Z, Sharma G, Tu C, Wood GC, Ibarzabal A, Jimenez A, Brethauer SA. Late relapse of diabetes after bariatric surgery: not rare, but not a failure. Diabetes care. 2020 Mar 1;43(3):534-40.
-With Patient
+With patient
 
 Dim i As Integer
 Dim NumDiabMeds As Integer
@@ -73,13 +73,13 @@ Prob_DM_Relapse = 1 - (1 - Prob_DM_Relapse) ^ (1 / 16)
 End Function
 
 
-Sub DM_Remission_Evaluate(Patient As Patient, intervention As intervention)
+Sub DM_Remission_Evaluate(patient As patient, intervention As intervention)
 
 Dim EmptyDrug As Diabetes_Medication
 
-With Patient
+With patient
                         
-      If Prob_DM_Rem(Patient, intervention) > RandArray(.ID, .time_elapsed / Cycle_Length, 42) Then
+      If Prob_DM_Rem(patient, intervention) > RandArray(.ID, .time_elapsed / Cycle_Length, 42) Then
       
             .DM_Remission = True
             .DM = False
@@ -97,9 +97,9 @@ End With
 
 End Sub
 
-Sub DM_Relapse_Evaluate(Patient As Patient, intervention As intervention)
+Sub DM_Relapse_Evaluate(patient As patient, intervention As intervention)
 
-With Patient
+With patient
 
       If .DM = False And .DM_Remission = True And .time_elapsed < 8 Then
             
@@ -117,9 +117,9 @@ End With
 
 End Sub
 
-Sub OSA_Remission_Evaluate(Patient As Patient, intervention As intervention)
+Sub OSA_Remission_Evaluate(patient As patient, intervention As intervention)
 
-With Patient
+With patient
 
       If .OSA = True Then
       
@@ -135,9 +135,9 @@ End With
 
 End Sub
 
-Sub HTN_Remission_Evaluate(Patient As Patient, intervention As intervention)
+Sub HTN_Remission_Evaluate(patient As patient, intervention As intervention)
 
-With Patient
+With patient
 
       If .Hypertension = True Then
       
@@ -153,9 +153,9 @@ End With
 
 End Sub
 
-Sub OA_Remission_Evaluate(Patient As Patient, intervention As intervention)
+Sub OA_Remission_Evaluate(patient As patient, intervention As intervention)
 
-With Patient
+With patient
 
       If .OA = True Then
       
@@ -171,9 +171,9 @@ End With
 
 End Sub
 
-Sub DLP_Remission_Evaluate(Patient As Patient, intervention As intervention)
+Sub DLP_Remission_Evaluate(patient As patient, intervention As intervention)
 
-With Patient
+With patient
 
       If .DLP = True Then
       
@@ -188,9 +188,9 @@ With Patient
 End With
 
 End Sub
-Sub CKD_Remission_Evaluate(Patient As Patient, intervention As intervention)
+Sub CKD_Remission_Evaluate(patient As patient, intervention As intervention)
 
-With Patient
+With patient
 
       If .CKD = True Then
       
@@ -205,9 +205,9 @@ With Patient
 End With
 
 End Sub
-Sub NASH_Remission_Evaluate(Patient As Patient, intervention As intervention)
+Sub NASH_Remission_Evaluate(patient As patient, intervention As intervention)
 
-With Patient
+With patient
 
       If .NASH = True Then
       
