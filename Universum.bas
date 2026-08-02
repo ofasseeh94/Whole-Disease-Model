@@ -5,7 +5,7 @@ Public Sub Engine()
 Application.Calculation = xlCalculationManual
 Application.ScreenUpdating = False
 
-Dim EmptyPatient As patient
+Dim EmptyPatient As Patient
 
 'clear old results
 ThisWorkbook.Sheets("Patient Outcomes").Range("A3:CV1000003").ClearContents

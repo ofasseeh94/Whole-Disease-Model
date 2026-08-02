@@ -131,7 +131,7 @@ Public Function BP_Estimate_SBP_From_Age_BMI(ByVal Age As Double, _
 End Function
 
 
-Public Function BP_SBP_Absolute_Change(ByRef patient As patient, _
+Public Function BP_SBP_Absolute_Change(ByRef Patient As Patient, _
                                        ByVal OldAge As Double, _
                                        ByVal OldBMI As Double) As Double
 
@@ -177,7 +177,7 @@ Public Function BP_SBP_Absolute_Change(ByRef patient As patient, _
     Dim ExpectedNewSBP As Double
     Dim DeltaSBP As Double
 
-    With patient
+    With Patient
 
         'Calculate expected SBP at the start of the cycle,using age and BMI before progression.
         ExpectedOldSBP = BP_Estimate_SBP_From_Age_BMI(OldAge, .Female, OldBMI)
@@ -188,6 +188,52 @@ Public Function BP_SBP_Absolute_Change(ByRef patient As patient, _
         'Calculate the expected SBP change.
         DeltaSBP = ExpectedNewSBP - ExpectedOldSBP
         BP_SBP_Absolute_Change = DeltaSBP
+
+    End With
+
+End Function
+
+Function DBP_Framingham(ByVal Age As Double, ByVal BaselineBMI As Double) As Double
+
+    'Cheng et al. Framingham DBP age component.
+    
+    'Source:
+    'Cheng S, Xanthakis V, Sullivan LM, Vasan RS.
+    'Blood Pressure Tracking Over the Adult Life Course:
+    'Patterns and Correlates in the Framingham Heart Study.
+    'Hypertension. 2012/2013.
+    
+    'DBP coefficients:
+    'Age per 10 years = 4.159
+    'Age-squared = -0.838
+    'Age x BMI = -0.422
+    
+    'Age is centered at 49 years and expressed per 10 years.
+    'BMI is expressed per 5 kg/m2.
+
+    Dim Age10 As Double
+    Dim BMI5 As Double
+
+    If Age <= 0 Then Exit Function
+    If BaselineBMI <= 0 Then Exit Function
+
+    Age10 = (Age - 49) / 10
+    BMI5 = BaselineBMI / 5
+
+    DBP_Framingham = _
+          (4.159 * Age10) _
+        - (0.838 * Age10 ^ 2) _
+        - (0.422 * Age10 * BMI5)
+
+End Function
+
+Public Function DBP_Framingham_Absolute_Change(Patient As Patient) As Double
+
+    With Patient
+
+        DBP_Framingham_Absolute_Change = _
+            DBP_Framingham(.Age, .BMI_Baseline) _
+            - DBP_Framingham(OldAge, .BMI_Baseline)
 
     End With
 

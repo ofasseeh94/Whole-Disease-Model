@@ -23,7 +23,7 @@ FirstOnset As Single
 
 End Type
 
-Type patient                              ' Create user-defined type.
+Type Patient                              ' Create user-defined type.
       
       'Patient characteristics
       ID As Long                          'Define elements of data type.
@@ -50,6 +50,7 @@ Type patient                              ' Create user-defined type.
       AF As Boolean                       'Atrial fibrillation
       SBP As Single                       'Systolic blood pressure  mmHg
       DBP As Single                       'Diastolic blood pressure  mmHg
+      QRS As Single                       'Baseline estimated QRS duration in milliseconds
       WC As Single                        'Waist circumfernce in cm
       occupational_risk_OA As String      'Categorical (never, seldom, sometimes, often, always)
       family_history_OA As Boolean        'True=family history of OA ,False= No history
@@ -292,7 +293,9 @@ Dim j As Long
                         .Agg_QALYs = Patient_Cohort_Matrix(i, 84)
                         .Agg_QALYs_Disc = Patient_Cohort_Matrix(i, 85)
                         .LDL = (.TC / 0.948) - (.HDL / 0.971) - ((.TG / 8.56) + (.TG * (.TC - .HDL) / 2140) - (.TG ^ 2) / 16100) - 9.44
-
+                        
+                        'QRS  is estimated once at baseline and stored in the patient, it is calculated once and not updated during model cycles
+                        .QRS = Patient_Cohort_Matrix(i, 86)
                         If .Diabetes_Treatment_Sequence <> "0" Then Call Get_Medication_Row(Patients(i - 1))
                         
                   End With
@@ -303,7 +306,7 @@ Dim j As Long
 
 End Sub
 
-Public Sub Paste_Patient_Characteristics(Patients() As patient, InterventionCount As Long)
+Public Sub Paste_Patient_Characteristics(Patients() As Patient, InterventionCount As Long)
     Dim ws As Worksheet
     Set ws = ThisWorkbook.Sheets("Patient Outcomes")
     Dim i As Long
@@ -419,7 +422,7 @@ Public Sub Paste_Patient_Characteristics(Patients() As patient, InterventionCoun
 
 End Sub
 
-Public Sub StorePatientArray(Patients() As patient, NInterventions As Byte, NPatients As Long, Niterations As Long)
+Public Sub StorePatientArray(Patients() As Patient, NInterventions As Byte, NPatients As Long, Niterations As Long)
         
     Dim i As Long
 
@@ -531,5 +534,50 @@ Public Sub StorePatientArray(Patients() As patient, NInterventions As Byte, NPat
         End With
 
     Next i
+
+End Sub
+
+Public Sub Load_Stroke_Risk_Reference_Values()
+
+    'Builds age-group-specific SBP, DBP, and BMI reference values required by the Hunter et al. stroke equation
+    
+    'Model methodology:
+    '   1. Patient_Cohort_Matrix is already loaded
+    '   2. This procedure creates a temporary VBA array with string age groups
+    '   3. FilterArray is used to filter by age group
+    '   4. ConvUnivariant is used to extract SBP, DBP, or BMI
+    '   5. Mean and sample SD are calculated once and stored in public variables
+    
+    Dim StrokeReferenceArray As Variant
+
+    StrokeReferenceArray = Build_Stroke_Reference_Array
+
+    Stroke_Mean_SBP_Under50 = Stroke_Reference_Mean(StrokeReferenceArray, "<50", 2)
+    Stroke_SD_SBP_Under50 = Stroke_Reference_SD(StrokeReferenceArray, "<50", 2)
+    Stroke_Mean_DBP_Under50 = Stroke_Reference_Mean(StrokeReferenceArray, "<50", 3)
+    Stroke_SD_DBP_Under50 = Stroke_Reference_SD(StrokeReferenceArray, "<50", 3)
+    Stroke_Mean_BMI_Under50 = Stroke_Reference_Mean(StrokeReferenceArray, "<50", 4)
+    Stroke_SD_BMI_Under50 = Stroke_Reference_SD(StrokeReferenceArray, "<50", 4)
+
+    Stroke_Mean_SBP_50_59 = Stroke_Reference_Mean(StrokeReferenceArray, "50-59", 2)
+    Stroke_SD_SBP_50_59 = Stroke_Reference_SD(StrokeReferenceArray, "50-59", 2)
+    Stroke_Mean_DBP_50_59 = Stroke_Reference_Mean(StrokeReferenceArray, "50-59", 3)
+    Stroke_SD_DBP_50_59 = Stroke_Reference_SD(StrokeReferenceArray, "50-59", 3)
+    Stroke_Mean_BMI_50_59 = Stroke_Reference_Mean(StrokeReferenceArray, "50-59", 4)
+    Stroke_SD_BMI_50_59 = Stroke_Reference_SD(StrokeReferenceArray, "50-59", 4)
+
+    Stroke_Mean_SBP_60_69 = Stroke_Reference_Mean(StrokeReferenceArray, "60-69", 2)
+    Stroke_SD_SBP_60_69 = Stroke_Reference_SD(StrokeReferenceArray, "60-69", 2)
+    Stroke_Mean_DBP_60_69 = Stroke_Reference_Mean(StrokeReferenceArray, "60-69", 3)
+    Stroke_SD_DBP_60_69 = Stroke_Reference_SD(StrokeReferenceArray, "60-69", 3)
+    Stroke_Mean_BMI_60_69 = Stroke_Reference_Mean(StrokeReferenceArray, "60-69", 4)
+    Stroke_SD_BMI_60_69 = Stroke_Reference_SD(StrokeReferenceArray, "60-69", 4)
+
+    Stroke_Mean_SBP_70Plus = Stroke_Reference_Mean(StrokeReferenceArray, "70+", 2)
+    Stroke_SD_SBP_70Plus = Stroke_Reference_SD(StrokeReferenceArray, "70+", 2)
+    Stroke_Mean_DBP_70Plus = Stroke_Reference_Mean(StrokeReferenceArray, "70+", 3)
+    Stroke_SD_DBP_70Plus = Stroke_Reference_SD(StrokeReferenceArray, "70+", 3)
+    Stroke_Mean_BMI_70Plus = Stroke_Reference_Mean(StrokeReferenceArray, "70+", 4)
+    Stroke_SD_BMI_70Plus = Stroke_Reference_SD(StrokeReferenceArray, "70+", 4)
 
 End Sub

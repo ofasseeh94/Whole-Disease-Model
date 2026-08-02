@@ -2,13 +2,17 @@ Attribute VB_Name = "Characteristics"
 Option Explicit
 
 
-'Store the cycle-start age, BMI, and SBP as module-level public variables.
+'Store the cycle-start age, BMI, and SBP, and DBP as module-level public variables.
 Public OldAge As Single
 Public OldBMI As Single
 Public OldSBP As Single
+Public OldDBP As Single
 Public Previous_BMI As Double
 
-Public Sub Characteristics_Progression(patient As patient)
+Public SBP_Absolute_Change As Single
+Public DBP_Absolute_Change As Single
+
+Public Sub Characteristics_Progression(Patient As Patient)
 
 '''''''Cycle length must be provided in years'''''''''
 
@@ -25,14 +29,15 @@ Dim i As Long
         
         Dim SBP_Absolute_Change As Double
         
-        With patient
+        With Patient
         
-'The SBP progression equation uses old and new age/BMI to calculate only the expected absolute SBP change for this cycle. The actual patient.SBP update is intentionally
-'kept in this Characteristics_Progression section, so patient characteristics are altered in one structured location rather than from inside the BP_Update module.
+'The SBP, and DBP progression equations use old and new age/BMI to calculate only the expected absolute SBP, and DBP change for this cycle. The actual patient.SBP, and
+'.DBP is kept in this Characteristics_Progression section, so patient characteristics are altered in one structured location
 
         OldAge = .Age
         OldBMI = .BMI
         OldSBP = .SBP
+        OldDBP = .DBP
               
         'Based on the model cycle length
         .time_elapsed = .time_elapsed + Cycle_Length 'As Double     'Duration the patient spent in the model
@@ -165,7 +170,7 @@ End If
  'Parameters were log transformed to the natural logarithm because the data were skewed
 
   
-  With patient
+  With Patient
   
   .GGT = Exp(1.608046929 + .Age * 0.004841736 + .BMI * 0.017174985 + Abs(.Female) * -0.357500953 + .HbA1C * 0.072271899 + .TC * 0.002991914 + .HDL * -0.000764338)
   .AST = Exp(2.850595177 + .Age * 0.000876495 + .BMI * 0.000673665 + Abs(.Female) * -0.187585319 + .HbA1C * -0.006711421 + .TC * 0.000734709 + .HDL * 0.001467541)
@@ -225,29 +230,36 @@ If .GGT > 90 Then .GGT = 90
       
 '''''''''''''''''''DBP''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''
 
-'.DBP 'As Single     'Diastolic blood pressure  mmHg
-'.SBP 'As Single     'Systolic blood pressure  mmHg
+'Update DBP using the Framingham age-related absolute change.
+'The BP_Update module returns only the expected delta; the patient characteristic
+'is updated here so characteristic changes remain centralized in this module.
 
-   Dim change_DBP As Double
-   
-  'ESTIMATING "CHANGE" IN DBP
-  'Source: Sparrow, D., Garvey, A. J., Rosner, B., & Thomas, H. E., Jr (1982). Factors in predicting blood pressure change. Circulation, 65(4), 789–794. https://doi.org/10.1161/01.cir.65.4.789
-  'this equation provides the annual change so we will adjust the change by simply dividing it by 2, this is not accurate but it is implemented for simplification
-  
-  change_DBP = 3.734 + 0.019 * .BMI + 0.022 * .HCT + -0.069 * .DBP
-  change_DBP = change_DBP * Cycle_Length
-  
-  
-  .DBP = .DBP + change_DBP
-  
-  If .DBP < 60 Then .DBP = 60
+DBP_Absolute_Change = DBP_Framingham_Absolute_Change(Patient)
+.DBP = OldDBP + DBP_Absolute_Change
+
+''.DBP 'As Single     'Diastolic blood pressure  mmHg
+''.SBP 'As Single     'Systolic blood pressure  mmHg
+'
+'   Dim change_DBP As Double
+'
+'  'ESTIMATING "CHANGE" IN DBP
+'  'Source: Sparrow, D., Garvey, A. J., Rosner, B., & Thomas, H. E., Jr (1982). Factors in predicting blood pressure change. Circulation, 65(4), 789–794. https://doi.org/10.1161/01.cir.65.4.789
+'  'this equation provides the annual change so we will adjust the change by simply dividing it by 2, this is not accurate but it is implemented for simplification
+'
+'  change_DBP = 3.734 + 0.019 * .BMI + 0.022 * .HCT + -0.069 * .DBP
+'  change_DBP = change_DBP * Cycle_Length
+'
+'
+'  .DBP = .DBP + change_DBP
+'
+'  If .DBP < 60 Then .DBP = 60
   
 '************************************* SBP*******************************************
 'Update SBP after BMI and age have been updated
 'This calculation applies only the expected change on top of the base SBP to account for the original model situation, to account for the model conditions in treatment resistant or
 'unctonrolled hypertension population
 
-SBP_Absolute_Change = BP_SBP_Absolute_Change(patient, OldAge, OldBMI)
+SBP_Absolute_Change = BP_SBP_Absolute_Change(Patient, OldAge, OldBMI)
 
     'Apply only the model-predicted absolute SBP change on top of the patient's actual cycle-start SBP. This preserves baseline resistant/uncontrolled hypertension
     'burden and prevents the equation from replacing actual patient SBP with anaverage predicted value.
@@ -332,7 +344,7 @@ End If
 ''''''''''''Diabetes parameters are mostly MANAGED BY THE DIABETES MODEL
 '''''''''''''''''''HbA1C'''''''''''''''''''''''''''''''''''
 'HbA1C update
-.HbA1C = HbA1CProg(patient)
+.HbA1C = HbA1CProg(Patient)
 
       '.DM_recognized 'As Boolean 'True=Patients know that they are diabetic , False= patients don't know
       If .DM = True Then
@@ -421,7 +433,7 @@ End If
 'check if complication is still affecting the patient and Adjust utility value based on complications disutility accordingly. Also add costs if complication is still affecting the patient
 'On Error GoTo Skip_Complications
 
-      For i = 1 To UBound(patient.Complication_Status)
+      For i = 1 To UBound(Patient.Complication_Status)
             
       'Define when the complication should end in years
       Dim EndTime_Complication As Double
@@ -429,9 +441,9 @@ End If
       EndTime_Complication = .Complication_Status(i).FirstOnset + .Complication_Status(i).Length / 52
             
             'check if complication still exists
-            If EndTime_Complication <= patient.time_elapsed - Cycle_Length Then
+            If EndTime_Complication <= Patient.time_elapsed - Cycle_Length Then
             
-                  patient.Complication_Status(i).Affected = False
+                  Patient.Complication_Status(i).Affected = False
             
             Else
                   
@@ -450,7 +462,7 @@ End If
 Skip_Complications:
   
 'Assess comorbidities
-Call Assess_Comorbidities(patient)
+Call Assess_Comorbidities(Patient)
 
 'HbA1C is updated after the treatment module of diabetes is run to consider the effect of the treatment in the HbA1C change
 'HbA1C update
@@ -504,7 +516,7 @@ Call Assess_Comorbidities(patient)
       End If
 
       'calculate utility value based on distutilities throughout the cycle
-      Utility_Instant = Agg_Utility(Disutility_Arr, patient, Disutility_Method) * Cycle_Length
+      Utility_Instant = Agg_Utility(Disutility_Arr, Patient, Disutility_Method) * Cycle_Length
       
       'Discount and Aggregate QALYs
       .Agg_QALYs = .Agg_QALYs + Utility_Instant
@@ -519,9 +531,9 @@ End With
 End Sub
 
 
-Public Sub Assess_Comorbidities(patient As patient)
+Public Sub Assess_Comorbidities(Patient As Patient)
 
-With patient
+With Patient
       
       'BELOW comorbidities are updated through the comorbidities incidence Module
       
@@ -533,11 +545,11 @@ otherwise the porbability of developing the comorbiditiy will rely on last year 
             '.DM 'As Boolean'True= Has diabetes , Fasle= NO diabtes
             If .DM = True Then
                   
-                  Call DM(patient)
+                  Call DM(Patient)
                         
-            ElseIf (1 - (1 - ProbDiabetes(patient)) ^ (Cycle_Length)) > RandArray(.ID, .time_elapsed / Cycle_Length, 21) Then
+            ElseIf (1 - (1 - ProbDiabetes(Patient)) ^ (Cycle_Length)) > RandArray(.ID, .time_elapsed / Cycle_Length, 21) Then
             
-                  Call DM(patient)
+                  Call DM(Patient)
                   .DM = True
                   If .Age_First_DM = 0 Then .Age_First_DM = .Age
                   
@@ -549,13 +561,13 @@ otherwise the porbability of developing the comorbiditiy will rely on last year 
             'Assess if the patient have a hypoglycemic event or not
             'HypoGly
             
-            If (1 - (1 - ProbHypogly(patient)) ^ (Cycle_Length)) > RandArray(.ID, .time_elapsed / Cycle_Length, 5) Then
+            If (1 - (1 - ProbHypogly(Patient)) ^ (Cycle_Length)) > RandArray(.ID, .time_elapsed / Cycle_Length, 5) Then
                   
                   '.HypoGly 'As Boolean    ' true=present , false= absent
                   .HypoGly = True
                   .previousHypoGly = True
                   
-                  Call HypoGly(patient)
+                  Call HypoGly(Patient)
                         
             End If
 
@@ -568,12 +580,12 @@ otherwise the porbability of developing the comorbiditiy will rely on last year 
                   '.Keto_history 'As Boolean   'Patient had a previous ketoacidosis or not
                         'Keto
             
-            If (1 - (1 - probKeto(patient)) ^ (Cycle_Length)) > RandArray(.ID, .time_elapsed / Cycle_Length, 6) Then
+            If (1 - (1 - probKeto(Patient)) ^ (Cycle_Length)) > RandArray(.ID, .time_elapsed / Cycle_Length, 6) Then
                   
                   '.Keto 'As Boolean    ' true=present , false= absent
                   .Keto = True
             
-                  Call DKA(patient)
+                  Call DKA(Patient)
             
                   'Keto_history 'As Boolean  ' true= history of Keto
                   .Keto_history = True
@@ -589,14 +601,14 @@ otherwise the porbability of developing the comorbiditiy will rely on last year 
             
             'PVD
             
-            If .PVD = True Or (1 - (1 - ProbPVD(patient)) ^ (Cycle_Length)) > RandArray(.ID, .time_elapsed / Cycle_Length, 7) Then
+            If .PVD = True Or (1 - (1 - ProbPVD(Patient)) ^ (Cycle_Length)) > RandArray(.ID, .time_elapsed / Cycle_Length, 7) Then
                   
                   '.PVD 'As Boolean    ' true=present , false= absent
                   .PVD = True
                   
                   If .Age_First_PVD = 0 Then .Age_First_PVD = .Age
 
-                  Call PVD(patient)
+                  Call PVD(Patient)
                         
             End If
 
@@ -612,14 +624,14 @@ otherwise the porbability of developing the comorbiditiy will rely on last year 
             '.OA 'As Boolean'Patient has osteoarthritis
                         'OA
             
-            If .OA = True Or (1 - (1 - ProbOA(patient)) ^ (Cycle_Length)) > RandArray(.ID, .time_elapsed / Cycle_Length, 8) Then
+            If .OA = True Or (1 - (1 - ProbOA(Patient)) ^ (Cycle_Length)) > RandArray(.ID, .time_elapsed / Cycle_Length, 8) Then
                   
                   '.OA 'As Boolean    ' true=present , false= absent
                   .OA = True
                   
                   If .Age_First_OA = 0 Then .Age_First_OA = .Age
 
-                  Call OA(patient)
+                  Call OA(Patient)
                         
             End If
 
@@ -627,14 +639,14 @@ otherwise the porbability of developing the comorbiditiy will rely on last year 
             '.OSA 'As Boolean'if patient has obstructive sleep apnea
                         'OSA
             
-            If .OSA = True Or (1 - (1 - ProbOSA(patient)) ^ (Cycle_Length)) > RandArray(.ID, .time_elapsed / Cycle_Length, 9) Then
+            If .OSA = True Or (1 - (1 - ProbOSA(Patient)) ^ (Cycle_Length)) > RandArray(.ID, .time_elapsed / Cycle_Length, 9) Then
                   
                   '.OSA 'As Boolean    ' true=present , false= absent
                   .OSA = True
                   
                   If .Age_First_OSA = 0 Then .Age_First_OSA = .Age
 
-                  Call OSA(patient)
+                  Call OSA(Patient)
                         
             End If
 
@@ -642,12 +654,12 @@ otherwise the porbability of developing the comorbiditiy will rely on last year 
             '.MA 'As Boolean ' if patient has macular edema
                         'MA
             
-            If .MA = True Or (1 - (1 - ProbMA(patient)) ^ (Cycle_Length)) > RandArray(.ID, .time_elapsed / Cycle_Length, 10) Then
+            If .MA = True Or (1 - (1 - ProbMA(Patient)) ^ (Cycle_Length)) > RandArray(.ID, .time_elapsed / Cycle_Length, 10) Then
                   
                   '.MA 'As Boolean    ' true=present , false= absent
                   .MA = True
             
-                  Call MA(patient)
+                  Call MA(Patient)
                         
             End If
 
@@ -655,14 +667,14 @@ otherwise the porbability of developing the comorbiditiy will rely on last year 
             '.Retino 'As Boolean   ' if the patient has diabetic  retinopathy
                         'Retino
             
-            If .Retino = True Or (1 - (1 - ProbRetino(patient)) ^ (Cycle_Length)) > RandArray(.ID, .time_elapsed / Cycle_Length, 11) Then
+            If .Retino = True Or (1 - (1 - ProbRetino(Patient)) ^ (Cycle_Length)) > RandArray(.ID, .time_elapsed / Cycle_Length, 11) Then
                   
                   '.Retino 'As Boolean    ' true=present , false= absent
                   .Retino = True
                   
                   If .Age_First_Retino = 0 Then .Age_First_Retino = .Age
 
-                  Call Retino(patient)
+                  Call Retino(Patient)
                         
             End If
 
@@ -670,14 +682,14 @@ otherwise the porbability of developing the comorbiditiy will rely on last year 
             '.Neuro 'As Boolean    ' if the patient has diabetic neuropathy
                         'Neuro
             
-            If .Neuro = True Or (1 - (1 - ProbNeuro(patient)) ^ (Cycle_Length)) > RandArray(.ID, .time_elapsed / Cycle_Length, 12) Then
+            If .Neuro = True Or (1 - (1 - ProbNeuro(Patient)) ^ (Cycle_Length)) > RandArray(.ID, .time_elapsed / Cycle_Length, 12) Then
                   
                   '.Neuro 'As Boolean    ' true=present , false= absent
                   .Neuro = True
                   
                   If .Age_First_Neuro = 0 Then .Age_First_Neuro = .Age
 
-                  Call Neuro(patient)
+                  Call Neuro(Patient)
                         
             End If
 
@@ -685,12 +697,12 @@ otherwise the porbability of developing the comorbiditiy will rely on last year 
             '.DLP 'As Boolean 'true= hyperlipdemia present, false=not present
                         'DLP
             
-            If .DLP = True Or (1 - (1 - ProbDLP(patient)) ^ (Cycle_Length)) > RandArray(.ID, .time_elapsed / Cycle_Length, 13) Then
+            If .DLP = True Or (1 - (1 - ProbDLP(Patient)) ^ (Cycle_Length)) > RandArray(.ID, .time_elapsed / Cycle_Length, 13) Then
                   
                   '.DLP 'As Boolean    ' true=present , false= absent
                   .DLP = True
             
-                  Call DLP(patient)
+                  Call DLP(Patient)
                         
             End If
 
@@ -698,12 +710,12 @@ otherwise the porbability of developing the comorbiditiy will rely on last year 
             '.CHD 'As Boolean     'True= has cronary heart disease, False= No CHD
                         'CHD
             
-            If .CHD = True Or (1 - (1 - ProbCHD(patient)) ^ (Cycle_Length)) > RandArray(.ID, .time_elapsed / Cycle_Length, 14) Then
+            If .CHD = True Or (1 - (1 - ProbCHD(Patient)) ^ (Cycle_Length)) > RandArray(.ID, .time_elapsed / Cycle_Length, 14) Then
                   
                   '.CHD 'As Boolean    ' true=present , false= absent
                   .CHD = True
             
-                  Call CHD(patient)
+                  Call CHD(Patient)
                   '.Age_First_CHD 'As Single  'Age 'As first
                   If .Age_First_CHD = 0 Then .Age_First_CHD = .Age
                         
@@ -720,14 +732,14 @@ otherwise the porbability of developing the comorbiditiy will rely on last year 
       
                   'HTN
             
-            If .Hypertension = True Or (1 - (1 - ProbHTN(patient)) ^ (Cycle_Length)) > RandArray(.ID, .time_elapsed / Cycle_Length, 15) Then
+            If .Hypertension = True Or (1 - (1 - ProbHTN(Patient)) ^ (Cycle_Length)) > RandArray(.ID, .time_elapsed / Cycle_Length, 15) Then
                   
                   '.HTN 'As Boolean    ' true=present , false= absent
                   .Hypertension = True
                   
                   If .Age_First_HTN = 0 Then .Age_First_HTN = .Age
                   
-                  Call HTN(patient)
+                  Call HTN(Patient)
 
                         
             End If
@@ -738,14 +750,14 @@ otherwise the porbability of developing the comorbiditiy will rely on last year 
             
                         'NASH
             
-            If .NASH = True Or (1 - (1 - ProbNASH(patient)) ^ (Cycle_Length)) > RandArray(.ID, .time_elapsed / Cycle_Length, 16) Then
+            If .NASH = True Or (1 - (1 - ProbNASH(Patient)) ^ (Cycle_Length)) > RandArray(.ID, .time_elapsed / Cycle_Length, 16) Then
                   
                   '.NASH 'As Boolean    ' true=present , false= absent
                   .NASH = True
                   
                   If .Age_First_NASH = 0 Then .Age_First_NASH = .Age
 
-                  Call NASH(patient)
+                  Call NASH(Patient)
                         
             End If
 
@@ -767,12 +779,12 @@ otherwise the porbability of developing the comorbiditiy will rely on last year 
       
             'Ulcer
             
-                  If .Ulcer = True Or (1 - (1 - ProbUlcer(patient)) ^ (Cycle_Length)) > RandArray(.ID, .time_elapsed / Cycle_Length, 18) Then
+                  If .Ulcer = True Or (1 - (1 - ProbUlcer(Patient)) ^ (Cycle_Length)) > RandArray(.ID, .time_elapsed / Cycle_Length, 18) Then
                         
                         '.Ulcer 'As Boolean    ' true=present , false= absent
                         .Ulcer = True
                   
-                        Call Foot_Ulcer(patient)
+                        Call Foot_Ulcer(Patient)
                   
                         '.ulcer_amput_history 'As Boolean  ' true= any history of ulcer or amuptation , false= no ulcer or amputation
                         If Foot_Ulcer_CHS = 4 And .ulcer_amput_history = False Then
@@ -788,14 +800,14 @@ otherwise the porbability of developing the comorbiditiy will rely on last year 
             
             'CKD
             
-                  If .CKD = True Or (1 - (1 - ProbCKD(patient)) ^ (Cycle_Length)) > RandArray(.ID, .time_elapsed / Cycle_Length, 45) Then
+                  If .CKD = True Or (1 - (1 - ProbCKD(Patient)) ^ (Cycle_Length)) > RandArray(.ID, .time_elapsed / Cycle_Length, 45) Then
                         
                         '.CKD 'As Boolean    ' true=present , false= absent
                         .CKD = True
                         
                         If .Age_First_CKD = 0 Then .Age_First_CKD = .Age
 
-                        Call CKD(patient)
+                        Call CKD(Patient)
                                                 
                   End If
       
@@ -807,14 +819,14 @@ otherwise the porbability of developing the comorbiditiy will rely on last year 
             
                         'Stroke
             
-            If .Stroke = True Or (1 - (1 - ProbStroke(patient)) ^ (Cycle_Length)) > RandArray(.ID, .time_elapsed / Cycle_Length, 19) Then
+            If .Stroke = True Or (1 - (1 - ProbStroke(Patient)) ^ (Cycle_Length)) > RandArray(.ID, .time_elapsed / Cycle_Length, 19) Then
                   
                   '.Stroke 'As Boolean    ' true=present , false= absent
                   .Stroke = True
             
                   If .Age_First_Stroke = 0 Then .Age_First_Stroke = .Age
                   
-                  Call Stroke(patient)
+                  Call Stroke(Patient)
             
                   'Stroke_history 'As Boolean  ' true= history of Stroke
                   .Stroke_history = True
@@ -823,29 +835,47 @@ otherwise the porbability of developing the comorbiditiy will rely on last year 
 
             'MI
             
-            If .MI = True Or (1 - (1 - ProbMI(patient)) ^ (Cycle_Length)) > RandArray(.ID, .time_elapsed / Cycle_Length, 20) Then
+            If .MI = True Or (1 - (1 - ProbMI(Patient)) ^ (Cycle_Length)) > RandArray(.ID, .time_elapsed / Cycle_Length, 20) Then
                   
                   '.MI 'As Boolean    ' true=present , false= absent
                   .MI = True
                   
                   If .Age_First_MI = 0 Then .Age_First_MI = .Age
 
-                  Call MI(patient)
+                  Call MI(Patient)
             
                   'MI_history 'As Boolean  ' true= history of MI
                   .MI_history = True
                         
             End If
+            
+            
+            'HF
+            
+            If .HF = True Or (1 - (1 - ProbHF(Patient)) ^ (Cycle_Length)) > RandArray(.ID, .time_elapsed / Cycle_Length, 10) Then
+                  
+                  '.HF 'As Boolean    ' true=present , false= absent
+                  .HF = True
+                  
+'                  If .Age_First_MI = 0 Then .Age_First_MI = .Age
+'
+'                  Call HF(Patient)
+'
+'                  'MI_history 'As Boolean  ' true= history of MI
+'                  .HF_history = True
+                        
+            End If
+            
       
 End With
 
 End Sub
 
-Function HbA1CProg(patient As patient) As Double
+Function HbA1CProg(Patient As Patient) As Double
 'this function intends to predict the progression of HbA1C of the patient over time
 'the function is fed with the patient data and provides the new HbA1C after 6 month
 
-With patient
+With Patient
 
       If .DM = True Then
             'if patient is diabetic use this equation

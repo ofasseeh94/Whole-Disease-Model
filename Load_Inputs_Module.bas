@@ -41,13 +41,13 @@ Public Active_Complications As Byte
 'Public Col_Complications() As Complication
 '__________________________________________________________________________________________________________________________
 'Patients
-Public Patients() As patient
+Public Patients() As Patient
 'Set data source
 Public Patient_Cohort_Matrix As Variant
 'Number of patients
 Public NPatients As Long
 'Collection of patients
-Public Col_Patients() As patient
+Public Col_Patients() As Patient
 'Mean Age
 Public Avg_Age As Double
 'Utilities
@@ -64,6 +64,20 @@ Public Baseline_TG
 Public Baseline_TC
 Public Baseline_LDL
 
+'__________________________________________________________________________________________________________________________
+
+'Stroke risk reference values for Hunter et al. ischemic stroke equation
+'Systolic blood pressure values
+Public Stroke_Mean_SBP_Under50 As Double, Stroke_Mean_SBP_50_59 As Double, Stroke_Mean_SBP_60_69 As Double, Stroke_Mean_SBP_70Plus As Double
+Public Stroke_SD_SBP_Under50 As Double, Stroke_SD_SBP_50_59 As Double, Stroke_SD_SBP_60_69 As Double, Stroke_SD_SBP_70Plus As Double
+
+'Diastolic blood pressure values
+Public Stroke_Mean_DBP_Under50 As Double, Stroke_Mean_DBP_50_59 As Double, Stroke_Mean_DBP_60_69 As Double, Stroke_Mean_DBP_70Plus As Double
+Public Stroke_SD_DBP_Under50 As Double, Stroke_SD_DBP_50_59 As Double, Stroke_SD_DBP_60_69 As Double, Stroke_SD_DBP_70Plus As Double
+
+'Body mass index values
+Public Stroke_Mean_BMI_Under50 As Double, Stroke_Mean_BMI_50_59 As Double, Stroke_Mean_BMI_60_69 As Double, Stroke_Mean_BMI_70Plus As Double
+Public Stroke_SD_BMI_Under50 As Double, Stroke_SD_BMI_50_59 As Double, Stroke_SD_BMI_60_69 As Double, Stroke_SD_BMI_70Plus As Double
 '__________________________________________________________________________________________________________________________
 
 'Diabetetstreatment algorithm
@@ -103,8 +117,15 @@ Disutility_Method = Range("Disutility_Method")
 PreparePatientCohort
 Call Load_Patient_Characteristics
 
+'Calculate baseline stroke reference means and SDs once after the patient cohort has been loaded
+Call Load_Stroke_Risk_Reference_Values
+
 'load random numbers
 RandArray = GenerateRandomArray(NPatients, Timehorizon / Cycle_Length, 52, 42)
+
+'Calculate baseline QRS once for each loaded patient.
+'QRS is stored in Patient.QRS and is not updated during cycle progression.
+Call Load_Baseline_QRS
 
 'Preparation: load interventions info
 Interventions = Load_Interventions

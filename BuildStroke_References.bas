@@ -103,7 +103,7 @@ End Sub
 
 Private Function MeanByAgeGroup( _
     ByVal wsPatients As Worksheet, _
-    ByVal valueColumn As String, _
+    ByVal ValueColumn As String, _
     ByVal minAge As Double, _
     ByVal maxAge As Double, _
     ByVal patientLastRow As Long) As Double
@@ -125,7 +125,7 @@ Private Function MeanByAgeGroup( _
     For rowIndex = 2 To patientLastRow
 
         ageValue = wsPatients.Cells(rowIndex, "B").Value
-        patientValue = wsPatients.Cells(rowIndex, valueColumn).Value
+        patientValue = wsPatients.Cells(rowIndex, ValueColumn).Value
 
         If IsNumeric(ageValue) And IsNumeric(patientValue) Then
 
@@ -150,7 +150,7 @@ End Function
 
 Private Function SDByAgeGroup( _
     ByVal wsPatients As Worksheet, _
-    ByVal valueColumn As String, _
+    ByVal ValueColumn As String, _
     ByVal minAge As Double, _
     ByVal maxAge As Double, _
     ByVal patientLastRow As Long) As Double
@@ -170,12 +170,12 @@ Private Function SDByAgeGroup( _
     Dim ageValue As Variant
     Dim patientValue As Variant
 
-    meanValue = MeanByAgeGroup(wsPatients, valueColumn, minAge, maxAge, patientLastRow)
+    meanValue = MeanByAgeGroup(wsPatients, ValueColumn, minAge, maxAge, patientLastRow)
 
     For rowIndex = 2 To patientLastRow
 
         ageValue = wsPatients.Cells(rowIndex, "B").Value
-        patientValue = wsPatients.Cells(rowIndex, valueColumn).Value
+        patientValue = wsPatients.Cells(rowIndex, ValueColumn).Value
 
         If IsNumeric(ageValue) And IsNumeric(patientValue) Then
 
