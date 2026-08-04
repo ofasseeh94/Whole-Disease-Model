@@ -852,7 +852,7 @@ otherwise the porbability of developing the comorbiditiy will rely on last year 
             
             'HF
             
-            If .HF = True Or (1 - (1 - ProbHF(Patient)) ^ (Cycle_Length)) > RandArray(.ID, .time_elapsed / Cycle_Length, 10) Then
+            If .HF = True Or (1 - (1 - ProbHF(Patient)) ^ (Cycle_Length)) > RandArray(.ID, .time_elapsed / Cycle_Length, 54) Then
                   
                   '.HF 'As Boolean    ' true=present , false= absent
                   .HF = True

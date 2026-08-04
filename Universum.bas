@@ -47,6 +47,7 @@ For j = 1 To UBound(Interventions)
           Patients(i) = EmptyPatient     ' resets all fields to defaults
       Next
       Call Load_Patient_Characteristics
+      Call Load_Baseline_QRS
       
       'Loop through patients
       For i = 1 To UBound(Patients)

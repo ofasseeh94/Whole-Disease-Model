@@ -293,9 +293,7 @@ Dim j As Long
                         .Agg_QALYs = Patient_Cohort_Matrix(i, 84)
                         .Agg_QALYs_Disc = Patient_Cohort_Matrix(i, 85)
                         .LDL = (.TC / 0.948) - (.HDL / 0.971) - ((.TG / 8.56) + (.TG * (.TC - .HDL) / 2140) - (.TG ^ 2) / 16100) - 9.44
-                        
-                        'QRS  is estimated once at baseline and stored in the patient, it is calculated once and not updated during model cycles
-                        .QRS = Patient_Cohort_Matrix(i, 86)
+            
                         If .Diabetes_Treatment_Sequence <> "0" Then Call Get_Medication_Row(Patients(i - 1))
                         
                   End With

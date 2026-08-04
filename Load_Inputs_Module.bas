@@ -121,7 +121,7 @@ Call Load_Patient_Characteristics
 Call Load_Stroke_Risk_Reference_Values
 
 'load random numbers
-RandArray = GenerateRandomArray(NPatients, Timehorizon / Cycle_Length, 52, 42)
+RandArray = GenerateRandomArray(NPatients, Timehorizon / Cycle_Length, 54, 42)
 
 'Calculate baseline QRS once for each loaded patient.
 'QRS is stored in Patient.QRS and is not updated during cycle progression.

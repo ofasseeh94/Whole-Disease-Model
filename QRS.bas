@@ -134,7 +134,7 @@ Private Function QRS_Baseline_HF_Adjustment( _
 
     If BaselineHF = False Then Exit Function
 
-    HFRandomNumber = RandArray(PatientID, 1, QRS_RANDOM_COLUMN)
+    HFRandomNumber = RandArray(PatientID, 1, 53)
 
     If HFRandomNumber <= QRS_HF_WIDE_PROBABILITY Then
         QRS_Baseline_HF_Adjustment = QRS_HF_WIDE_ADDITION
