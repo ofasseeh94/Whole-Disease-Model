@@ -50,7 +50,7 @@ Type Patient                              ' Create user-defined type.
       AF As Boolean                       'Atrial fibrillation
       SBP As Single                       'Systolic blood pressure  mmHg
       DBP As Single                       'Diastolic blood pressure  mmHg
-      QRS As Single                       'Baseline estimated QRS duration in milliseconds
+      QRS As Single                       'Estimated QRS duration in milliseconds
       WC As Single                        'Waist circumfernce in cm
       occupational_risk_OA As String      'Categorical (never, seldom, sometimes, often, always)
       family_history_OA As Boolean        'True=family history of OA ,False= No history

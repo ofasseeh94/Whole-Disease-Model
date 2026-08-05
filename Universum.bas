@@ -47,7 +47,7 @@ For j = 1 To UBound(Interventions)
           Patients(i) = EmptyPatient     ' resets all fields to defaults
       Next
       Call Load_Patient_Characteristics
-      Call Load_Baseline_QRS
+      Call Initialize_QRS
       
       'Loop through patients
       For i = 1 To UBound(Patients)
@@ -161,6 +161,9 @@ For j = 1 To UBound(Interventions)
                   
               
                   'loop through cycles
+                    Sheets("SBP_Tracker").Cells.ClearContents
+                    Sheets("DBP_Tracker").Range("D1:XFD31").ClearContents
+                  
                   For x = 1 To Cycles
                         
                        Sheets("SBP_Tracker").Cells(.time_elapsed * 2 + 2, .ID + 3).Value = .SBP

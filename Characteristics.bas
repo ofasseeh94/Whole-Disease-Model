@@ -9,8 +9,6 @@ Public OldSBP As Single
 Public OldDBP As Single
 Public Previous_BMI As Double
 
-Public SBP_Absolute_Change As Single
-Public DBP_Absolute_Change As Single
 
 Public Sub Characteristics_Progression(Patient As Patient)
 
@@ -26,8 +24,6 @@ Public Sub Characteristics_Progression(Patient As Patient)
 
 'Define general index variables
 Dim i As Long
-        
-        Dim SBP_Absolute_Change As Double
         
         With Patient
         
@@ -234,12 +230,14 @@ If .GGT > 90 Then .GGT = 90
 'The BP_Update module returns only the expected delta; the patient characteristic
 'is updated here so characteristic changes remain centralized in this module.
 
+Dim DBP_Absolute_Change As Single
+
 DBP_Absolute_Change = DBP_Framingham_Absolute_Change(Patient)
 .DBP = OldDBP + DBP_Absolute_Change
 
-''.DBP 'As Single     'Diastolic blood pressure  mmHg
-''.SBP 'As Single     'Systolic blood pressure  mmHg
-'
+'.DBP 'As Single     'Diastolic blood pressure  mmHg
+'.SBP 'As Single     'Systolic blood pressure  mmHg
+
 '   Dim change_DBP As Double
 '
 '  'ESTIMATING "CHANGE" IN DBP
@@ -259,6 +257,8 @@ DBP_Absolute_Change = DBP_Framingham_Absolute_Change(Patient)
 'This calculation applies only the expected change on top of the base SBP to account for the original model situation, to account for the model conditions in treatment resistant or
 'unctonrolled hypertension population
 
+Dim SBP_Absolute_Change As Single
+
 SBP_Absolute_Change = BP_SBP_Absolute_Change(Patient, OldAge, OldBMI)
 
     'Apply only the model-predicted absolute SBP change on top of the patient's actual cycle-start SBP. This preserves baseline resistant/uncontrolled hypertension
@@ -266,27 +266,23 @@ SBP_Absolute_Change = BP_SBP_Absolute_Change(Patient, OldAge, OldBMI)
     If OldSBP > 0 Then
         .SBP = OldSBP + SBP_Absolute_Change
     End If
-    
+
     'Clinical plausibility bounds.
     'These are model safety checks rather than values estimated by the source equation.
-    If .SBP < 80 Then .SBP = 80
-    If .SBP > 260 Then .SBP = 260
-    
+'    If .SBP < 80 Then .SBP = 80
+'    If .SBP > 260 Then .SBP = 260
+
     'Logical consistency check:
     'SBP should usually remain above DBP. If the model generates an implausible value,
     'keep SBP at least 10 mmHg above DBP so downstream risk equations remain stable.
-    If .DBP > 0 Then
-        If .SBP <= .DBP Then .SBP = .DBP + 10
-    End If
+'    If .DBP > 0 Then
+'        If .SBP <= .DBP Then .SBP = .DBP + 10
+'    End If
 
 
 
 'Since we now calculate the SBP and the DBP each seperately, we don't need to rely on the PP equation anymore as it does not make sense, we can calculate the actual PP
 'by PP = SBP - DBP
-
-Dim PP As Double
-
-    PP = .SBP - .DBP
 
 ' 'Source:Skurnick, J. H., Aladjem, M., & Aviv, A. (2010). Sex differences in pulse pressure trends with age are cross-cultural. Hypertension (Dallas, Tex. : 1979), 55(1), 40–47. https://doi.org/10.1161/HYPERTENSIONAHA.109.139477
 ' Dim PP As Double
@@ -848,6 +844,12 @@ otherwise the porbability of developing the comorbiditiy will rely on last year 
                   .MI_history = True
                         
             End If
+            
+            
+            'QRS is updated once per cycle before HF incidence because ProbHF uses Patient.QRS
+            'If HF occurs during this cycle, its effect on QRS is reflected in the next cycle
+            
+            Call Update_QRS(Patient)
             
             
             'HF

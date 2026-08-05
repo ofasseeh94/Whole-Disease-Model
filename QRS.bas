@@ -11,93 +11,103 @@ Private Const QRS_HF_NARROW_ADDITION As Double = 3
 
 Private Const QRS_OSA_ADDITION As Double = 4
 
-'Use a dedicated random-number column for baseline QRS HF subgroup assignment.
-'Confirm this column is not already used elsewhere in the model.
-Private Const QRS_RANDOM_COLUMN As Long = 51
+Public Sub Initialize_QRS()
 
-Public Sub Load_Baseline_QRS()
-
-    'Calculates baseline QRS once for every patient after:
-    '   1. Patients() has been loaded
+    'Initializes QRS for every loaded patient after:
+    '   1. Patients() has been loaded into VBA memory
     '   2. RandArray has been generated
     
-    'QRS is stored as a patient-level baseline characteristic.
-    'It is not updated during model cycles.
+    'QRS is stored in Patient.QRS
+    'This is only the initial QRS value after loading .QRS is recalculated later
+    'inside Characteristics_Progression as patient characteristics change.
 
     Dim i As Long
 
     For i = LBound(Patients) To UBound(Patients)
 
-        With Patients(i)
-
-            .QRS = QRS_Estimate(.Age, .BMI, .Female, .HF, .OSA, .ID)
-
-        End With
+        Call Update_QRS(Patients(i))
 
     Next i
 
 End Sub
 
-Public Function QRS_Estimate( _
-    ByVal Age As Double, _
-    ByVal BMI As Double, _
-    ByVal Female As Boolean, _
-    ByVal BaselineHF As Boolean, _
-    ByVal OSA As Boolean, _
-    ByVal PatientID As Long) As Double
+Public Sub Update_QRS(ByRef Patient As Patient)
 
-    'Estimates baseline QRS duration in milliseconds.
+    'Recalculates QRS for the active patient using the characteristics currently
+    'stored in the Patient data type
     
-    'Baseline QRS source:
-    'Rao ACA, Ng ACC, Sy RW, et al. Electrocardiographic QRS duration is
+    'This updates only Patient.QRS
+    
+    'When used in Characteristics_Progression, this should be called before HF
+    'incidence is evaluated because ProbHF uses Patient.QRS
+
+    Patient.QRS = QRS_Estimate(Patient)
+
+End Sub
+
+Public Function QRS_Estimate(ByRef Patient As Patient) As Double
+
+    'Estimates QRS duration in milliseconds using current patient characteristics
+    
+    'source:Rao ACA, Ng ACC, Sy RW, et al. Electrocardiographic QRS duration is
     'influenced by body mass index and sex. Int J Cardiol Heart Vasc.
     '2021;37:100884.
     
     'HF adjustment:
-    'Applied only if the patient already has HF at baseline.
-    'This is not updated later during cycle progression.
+    'Applied when the patient has HF at the time QRS is calculated
+    'The 25% / 75% HF subgroup assignment uses a fixed patient-level random
+    'draw from RandArray column 53, so the patient's HF-related QRS subgroup
+    'is stable across cycles
     
     'OSA adjustment:
     'Pressman GS, Orban M, Leinveber P, et al. Association between QRS duration
-    'and obstructive sleep apnea. J Clin Sleep Med. 2012;8(6):649-654.
+    'and obstructive sleep apnea. J Clin Sleep Med. 2012;8(6):649-654
 
-    Dim AgeCategory As Long
-    Dim BMICategory As Long
-    Dim BaseQRS As Double
-    Dim HFAdjustment As Double
-    Dim OSAAdjustment As Double
+    Dim AgeCategory As Single
+    Dim BMICategory As Single
+    Dim BaseQRS As Single
+    Dim HFAdjustment As Single
+    Dim OSAAdjustment As Single
 
-    If Age <= 0 Then Exit Function
-    If BMI <= 0 Then Exit Function
+    With Patient
 
-    AgeCategory = QRS_Age_Category(Age)
-    BMICategory = QRS_BMI_Category(BMI)
+        If .Age <= 0 Then Exit Function
+        If .BMI <= 0 Then Exit Function
+        If .ID <= 0 Then Exit Function
 
-    BaseQRS = QRS_Base_Value(AgeCategory, BMICategory, Female)
-    HFAdjustment = QRS_Baseline_HF_Adjustment(BaselineHF, PatientID)
+        AgeCategory = QRS_Age_Category(.Age)
+        BMICategory = QRS_BMI_Category(.BMI)
 
-    If OSA Then OSAAdjustment = QRS_OSA_ADDITION
+        BaseQRS = QRS_Base_Value(AgeCategory, BMICategory, .Female)
+        HFAdjustment = QRS_HF_Adjustment(Patient)
+
+        If .OSA Then OSAAdjustment = QRS_OSA_ADDITION
+
+    End With
 
     QRS_Estimate = BaseQRS + HFAdjustment + OSAAdjustment
 
 End Function
 
-Function QRS_Age_Category(ByVal Age As Double) As Long
+Private Function QRS_Age_Category(ByVal Age As Double) As Long
+
+    'Converts age into the age bands used by the QRS reference table
+    'Values outside the source range are capped to the closest supported age
 
     If Age < QRS_MINIMUM_AGE Then Age = QRS_MINIMUM_AGE
     If Age > QRS_MAXIMUM_AGE Then Age = QRS_MAXIMUM_AGE
 
-    If Age < 30# Then
+    If Age < 30 Then
         QRS_Age_Category = 1
-    ElseIf Age < 40# Then
+    ElseIf Age < 40 Then
         QRS_Age_Category = 2
-    ElseIf Age < 50# Then
+    ElseIf Age < 50 Then
         QRS_Age_Category = 3
-    ElseIf Age < 60# Then
+    ElseIf Age < 60 Then
         QRS_Age_Category = 4
-    ElseIf Age < 70# Then
+    ElseIf Age < 70 Then
         QRS_Age_Category = 5
-    ElseIf Age < 80# Then
+    ElseIf Age < 80 Then
         QRS_Age_Category = 6
     Else
         QRS_Age_Category = 7
@@ -105,13 +115,15 @@ Function QRS_Age_Category(ByVal Age As Double) As Long
 
 End Function
 
-Private Function QRS_BMI_Category(ByVal BMI As Double) As Long
+Function QRS_BMI_Category(ByVal BMI As Double) As Long
+
+    'Converts BMI into the BMI bands used by the QRS reference table.
 
     If BMI < 18.5 Then
         QRS_BMI_Category = 1
-    ElseIf BMI < 25# Then
+    ElseIf BMI < 25 Then
         QRS_BMI_Category = 2
-    ElseIf BMI < 30# Then
+    ElseIf BMI < 30 Then
         QRS_BMI_Category = 3
     Else
         QRS_BMI_Category = 4
@@ -119,35 +131,55 @@ Private Function QRS_BMI_Category(ByVal BMI As Double) As Long
 
 End Function
 
-Private Function QRS_Baseline_HF_Adjustment( _
-    ByVal BaselineHF As Boolean, _
-    ByVal PatientID As Long) As Double
+Function QRS_HF_Adjustment(ByRef Patient As Patient) As Double
 
-    'Applies HF-related QRS widening only for patients who already have HF
-    'at baseline.
-    '
-    'This uses RandArray because the model assigns a reproducible subgroup:
-    '   25% of baseline HF patients receive +40 ms
-    '   75% of baseline HF patients receive +3 ms
+    'Applies HF-related QRS widening when the patient has HF at the time QRS is calculated.
+    
+    'RandArray column 53 is used for this fixed patient-level subgroup draw:
+    '   25% of HF patients receive +40 ms
+    '   75% of HF patients receive +3 ms
+    
+    'The cycle index is fixed at 1 so the same patient remains in the same
+    'HF-QRS subgroup across all cycles.
 
     Dim HFRandomNumber As Double
 
-    If BaselineHF = False Then Exit Function
+    With Patient
 
-    HFRandomNumber = RandArray(PatientID, 1, 53)
+        If .HF = False Then Exit Function
+
+        HFRandomNumber = RandArray(.ID, 1, 53)
+
+    End With
 
     If HFRandomNumber <= QRS_HF_WIDE_PROBABILITY Then
-        QRS_Baseline_HF_Adjustment = QRS_HF_WIDE_ADDITION
+        QRS_HF_Adjustment = QRS_HF_WIDE_ADDITION
     Else
-        QRS_Baseline_HF_Adjustment = QRS_HF_NARROW_ADDITION
+        QRS_HF_Adjustment = QRS_HF_NARROW_ADDITION
     End If
 
 End Function
-
 Private Function QRS_Base_Value( _
     ByVal AgeCategory As Long, _
     ByVal BMICategory As Long, _
     ByVal Female As Boolean) As Double
+
+    'Returns the QRS reference value by sex, age category, and BMI category.
+    '
+    'Age categories:
+    '   1 = 20-29
+    '   2 = 30-39
+    '   3 = 40-49
+    '   4 = 50-59
+    '   5 = 60-69
+    '   6 = 70-79
+    '   7 = 80-89
+    '
+    'BMI categories:
+    '   1 = BMI < 18.5
+    '   2 = BMI 18.5 to <25
+    '   3 = BMI 25 to <30
+    '   4 = BMI >=30
 
     If Female Then
 
