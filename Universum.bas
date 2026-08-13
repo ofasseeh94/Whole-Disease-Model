@@ -47,11 +47,11 @@ For j = 1 To UBound(Interventions)
           Patients(i) = EmptyPatient     ' resets all fields to defaults
       Next
       Call Load_Patient_Characteristics
-      Call Initialize_QRS
       
       'Loop through patients
       For i = 1 To UBound(Patients)
       
+            
             ReDim Mortality_Arr(0)
       
             With Patients(i)
@@ -161,13 +161,9 @@ For j = 1 To UBound(Interventions)
                   
               
                   'loop through cycles
-                    Sheets("SBP_Tracker").Cells.ClearContents
-                    Sheets("DBP_Tracker").Range("D1:XFD31").ClearContents
-                  
                   For x = 1 To Cycles
                         
-                       Sheets("SBP_Tracker").Cells(.time_elapsed * 2 + 2, .ID + 3).Value = .SBP
-                       Sheets("DBP_Tracker").Cells(.time_elapsed * 2 + 2, .ID + 3).Value = .DBP
+                      ' Sheets("BMI Impact_Sema72").Cells(.time_elapsed * 2 + 2, .ID + 3).Value = .BMI
                                                                                                                                                                      
                         If .Dead = True Then GoTo NextPatient
                         

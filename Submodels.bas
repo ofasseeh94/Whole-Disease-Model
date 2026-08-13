@@ -202,12 +202,6 @@ Public HypoGly_Cycle As Double
 Public HypoGly_Repeat As Integer
 Public HypoGly_DisU_Costs As Variant
 
-'HF variables
-
-
-
-
-
 
 Sub Foot_Ulcer(Patient As Patient)
 

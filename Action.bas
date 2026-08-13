@@ -1,5 +1,7 @@
 Attribute VB_Name = "Action"
 'General Variables
+
+
 Dim TRI As Integer
 Dim SheetType As String
 
@@ -7,7 +9,6 @@ Option Explicit
 
 Const Mname_DCost As String = "Action_Menu"
 '*************************************************************
-
 
 Sub DeleteActionPopUpMenu()
     ' Delete the popup menu if it already exists.

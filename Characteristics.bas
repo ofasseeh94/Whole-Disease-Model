@@ -11,7 +11,6 @@ Public Previous_BMI As Double
 
 
 Public Sub Characteristics_Progression(Patient As Patient)
-
 '''''''Cycle length must be provided in years'''''''''
 
 'some of the patient characteristics are instantly updated by other functions or modules the rest are updated here
@@ -24,22 +23,23 @@ Public Sub Characteristics_Progression(Patient As Patient)
 
 'Define general index variables
 Dim i As Long
-        
-        With Patient
-        
+
+With Patient
+      
 'The SBP, and DBP progression equations use old and new age/BMI to calculate only the expected absolute SBP, and DBP change for this cycle. The actual patient.SBP, and
 '.DBP is kept in this Characteristics_Progression section, so patient characteristics are altered in one structured location
 
-        OldAge = .Age
-        OldBMI = .BMI
-        OldSBP = .SBP
-        OldDBP = .DBP
-              
-        'Based on the model cycle length
-        .time_elapsed = .time_elapsed + Cycle_Length 'As Double     'Duration the patient spent in the model
-        .Age = .Age + Cycle_Length
-            
-        
+OldAge = .Age
+OldBMI = .BMI
+OldSBP = .SBP
+OldDBP = .DBP
+      
+      
+      'Based on the model cycle length
+      .time_elapsed = .time_elapsed + Cycle_Length 'As Double     'Duration the patient spent in the model
+      .Age = .Age + Cycle_Length
+      
+ 
 '''''''''''''''''''''MENOPAUSE'''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''
       '.Menopause 'As Boolean    'True= menopause occured, False=menopause didn't occur
       '.age_menopause 'As Single 'Female age at menopause
@@ -47,6 +47,7 @@ Dim i As Long
       'SOURCE for age of menopause equation: Tehrani, F. R., Solaymani-Dodaran, M., Tohidi, M., Gohari, M. R., & Azizi, F. (2013). Modeling age at menopause using serum concentration of anti-mullerian hormone. The Journal of clinical endocrinology and metabolism, 98(2), 729–735. https://doi.org/10.1210/jc.2012-3176
 If .Female = True And (IsEmpty(.age_menopause) Or .age_menopause = 0) Then
     
+      
       Dim AMH As Double
       Dim ActiveAge As Single
       
@@ -61,6 +62,7 @@ If .Female = True And (IsEmpty(.age_menopause) Or .age_menopause = 0) Then
         ' in this equation, AMH was ng/dl
       .age_menopause = Application.WorksheetFunction.Min(63, (-LN(0.5)) ^ (0.060388) * Exp(3.18019 + 0.1608897 * AMH + 0.016068 * (ActiveAge - .time_elapsed)))
            
+
 End If
   If .age_menopause <= .Age Then
       
@@ -123,7 +125,10 @@ End If
             End If
       
       End If
-      
+'Not to exceed
+If .BMI > 69.1 Then .BMI = 69.1
+'Not to be less than
+If .BMI < 15 Then .BMI = 15
 '''''''''''''''''''''Waist Circumference''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''
       
       
@@ -158,7 +163,10 @@ End If
             End If
       
       End If
-      
+'Not to exceed
+If .WC > 200 Then .WC = 200
+'Not to be less than
+If .WC < 50 Then .WC = 50
 '''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''
 
 '''''''''''''''''ALT and AST'''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''
@@ -168,14 +176,97 @@ End If
   
   With Patient
   
-  .GGT = Exp(1.608046929 + .Age * 0.004841736 + .BMI * 0.017174985 + Abs(.Female) * -0.357500953 + .HbA1C * 0.072271899 + .TC * 0.002991914 + .HDL * -0.000764338)
-  .AST = Exp(2.850595177 + .Age * 0.000876495 + .BMI * 0.000673665 + Abs(.Female) * -0.187585319 + .HbA1C * -0.006711421 + .TC * 0.000734709 + .HDL * 0.001467541)
-  .ALT = Exp(2.236423928 + .Age * -0.0000232594 + .BMI * 0.013520515 + Abs(.Female) * -0.336130779 + .HbA1C * 0.020782428 + .TC * 0.002403868 + .HDL * -0.002475193)
+'  .GGT = Exp(1.608046929 + .Age * 0.004841736 + .BMI * 0.017174985 + Abs(.Female) * -0.357500953 + .HbA1C * 0.072271899 + .TC * 0.002991914 + .HDL * -0.000764338)
+'  .AST = Exp(2.850595177 + .Age * 0.000876495 + .BMI * 0.000673665 + Abs(.Female) * -0.187585319 + .HbA1C * -0.006711421 + .TC * 0.000734709 + .HDL * 0.001467541)
+'  .ALT = Exp(2.236423928 + .Age * -0.0000232594 + .BMI * 0.013520515 + Abs(.Female) * -0.336130779 + .HbA1C * 0.020782428 + .TC * 0.002403868 + .HDL * -0.002475193)
+Dim logalt As Double
+Dim gender_num As Integer
+If .Female = False Then
+    gender_num = 1
+Else
+    gender_num = 0
+End If
+
+logalt = 0.869729371643 _
+    - 0.857315566176 * gender_num _
+    + 0.019072702259 * .Age _
+    - 0.004746368871 * gender_num * .Age _
+    - 0.000175422566 * .Age * .Age _
+    - 0.000028589762 * gender_num * .Age * .Age _
+    + 0.027262219512 * .BMI _
+    + 0.062220621608 * gender_num * .BMI _
+    - 0.000289523 * .BMI * .BMI _
+    - 0.000809878162 * gender_num * .BMI * .BMI _
+    + 0.001266559103 * .HDL _
+    + 0.005778417906 * gender_num * .HDL _
+    - 0.000269235297 * .TC _
+    - 0.000129487219 * gender_num * .TC _
+    + 0.03976057495 * .HbA1C _
+    - 0.037293983897 * gender_num * .HbA1C _
+    + 0.145572713216 * Log(.TG) _
+    + 0.076272540433 * gender_num * Log(.TG)
+
+.ALT = 1.1291495142703 * Exp(logalt)
+    
+Dim logast As Double
+
+
+logast = 2.663579890036 _
+    + 0.078571809803 * gender_num _
+    + 0.003609920484 * .Age _
+    - 0.00449458095 * gender_num * .Age _
+    + 0.000121908841 * .BMI _
+    + 0.004514008919 * gender_num * .BMI _
+    + 0.001141671184 * .HDL _
+    + 0.003032110804 * gender_num * .HDL _
+    + 0.000082453091 * .TC _
+    + 0.000452513699 * gender_num * .TC _
+    + 0.005526204277 * .HbA1C _
+    - 0.010010722564 * gender_num * .HbA1C
+
+.AST = 1.0801390328268 * Exp(logast)
+
+Dim logggt As Double
+Dim lntg As Double
+
+lntg = Log(.TG)
+
+logggt = -1.037754095807 _
+    - 0.666877484897 * gender_num _
+    + 0.021650880194 * .Age _
+    - 0.001729998953 * gender_num * .Age _
+    - 0.000187304557 * .Age * .Age _
+    - 0.000035523903 * gender_num * .Age * .Age _
+    + 0.040560163755 * .BMI _
+    + 0.043847919229 * gender_num * .BMI _
+    - 0.00038342176 * .BMI * .BMI _
+    - 0.000617686274 * gender_num * .BMI * .BMI _
+    + 0.004437880777 * .HDL _
+    + 0.010076180848 * gender_num * .HDL _
+    - 0.001041803282 * .TC _
+    + 0.001545055732 * gender_num * .TC _
+    + 0.126042883901 * .HbA1C _
+    - 0.070027400341 * gender_num * .HbA1C _
+    + 0.387868620771 * lntg _
+    + 0.013554995466 * gender_num * lntg
+
+.GGT = 1.2669564846961 * Exp(logggt)
 
  '5 times the Upper limit normal for ALT and 3 times for GGT
-If .ALT > 280 Then .ALT = 280
+'Not to exceed
 If .GGT > 90 Then .GGT = 90
+'Not to be less than
+If .GGT < 5 Then .GGT = 5
 
+'Not to exceed
+If .AST > 280 Then .AST = 280
+'Not to be less than
+If .AST < 5 Then .AST = 5
+
+'Not to exceed
+If .ALT > 280 Then .ALT = 280
+'Not to be less than
+If .ALT < 5 Then .ALT = 5
 
   End With
 '''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''
@@ -222,35 +313,12 @@ If .GGT > 90 Then .GGT = 90
       .Uric_Acid = .Uric_Acid / 59.48
       
       End If
+'Not to exceed
+If .Uric_Acid > 10.3 Then .Uric_Acid = 10.3
+'Not to be less than
+If .Uric_Acid < 3.98 Then .Uric_Acid = 3.98
       
-      
-'''''''''''''''''''DBP''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''
 
-'Update DBP using the Framingham age-related absolute change.
-'The BP_Update module returns only the expected delta; the patient characteristic
-'is updated here so characteristic changes remain centralized in this module.
-
-Dim DBP_Absolute_Change As Single
-
-DBP_Absolute_Change = DBP_Framingham_Absolute_Change(Patient)
-.DBP = OldDBP + DBP_Absolute_Change
-
-'.DBP 'As Single     'Diastolic blood pressure  mmHg
-'.SBP 'As Single     'Systolic blood pressure  mmHg
-
-'   Dim change_DBP As Double
-'
-'  'ESTIMATING "CHANGE" IN DBP
-'  'Source: Sparrow, D., Garvey, A. J., Rosner, B., & Thomas, H. E., Jr (1982). Factors in predicting blood pressure change. Circulation, 65(4), 789–794. https://doi.org/10.1161/01.cir.65.4.789
-'  'this equation provides the annual change so we will adjust the change by simply dividing it by 2, this is not accurate but it is implemented for simplification
-'
-'  change_DBP = 3.734 + 0.019 * .BMI + 0.022 * .HCT + -0.069 * .DBP
-'  change_DBP = change_DBP * Cycle_Length
-'
-'
-'  .DBP = .DBP + change_DBP
-'
-'  If .DBP < 60 Then .DBP = 60
   
 '************************************* SBP*******************************************
 'Update SBP after BMI and age have been updated
@@ -266,24 +334,70 @@ SBP_Absolute_Change = BP_SBP_Absolute_Change(Patient, OldAge, OldBMI)
     If OldSBP > 0 Then
         .SBP = OldSBP + SBP_Absolute_Change
     End If
+'Important:
+'Table 2 reports coefficients for longitudinal tracking/change, not a full absolute PP prediction
+'equation with an intercept. Therefore, we calculate the change from old patient state to current
+'patient state, then apply that change to the patient's actual cycle-start PP.
 
-    'Clinical plausibility bounds.
-    'These are model safety checks rather than values estimated by the source equation.
-'    If .SBP < 80 Then .SBP = 80
-'    If .SBP > 260 Then .SBP = 260
+Dim OldPP As Double
+Dim OldPP_Cheng_Component As Double
+Dim NewPP_Cheng_Component As Double
+Dim PP_Absolute_Change As Double
+Dim PP As Double
 
-    'Logical consistency check:
-    'SBP should usually remain above DBP. If the model generates an implausible value,
-    'keep SBP at least 10 mmHg above DBP so downstream risk equations remain stable.
-'    If .DBP > 0 Then
-'        If .SBP <= .DBP Then .SBP = .DBP + 10
-'    End If
+    OldPP = OldSBP - OldDBP
+    
+    OldPP_Cheng_Component = _
+          4.656 * ((OldAge - 49) / 10) _
+        + 6.241 * Abs(Abs(.Female) - 1) _
+        - 1.31 * ((OldAge - 49) / 10) * Abs(Abs(.Female) - 1) _
+        + 1.739 * (OldBMI / 5) _
+        - 0.993 * Abs(Abs(.Female) - 1) * (OldBMI / 5) _
+        + 0.557 * Abs(.smoking) _
+        + 4.571 * Abs(.DM) _
+        - 0.719 * ((.TC / .HDL) / 2)
+    
+    NewPP_Cheng_Component = _
+          4.656 * ((.Age - 49) / 10) _
+        + 6.241 * Abs(Abs(.Female) - 1) _
+        - 1.31 * ((.Age - 49) / 10) * Abs(Abs(.Female) - 1) _
+        + 1.739 * (.BMI / 5) _
+        - 0.993 * Abs(Abs(.Female) - 1) * (.BMI / 5) _
+        + 0.557 * Abs(.smoking) _
+        + 4.571 * Abs(.DM) _
+        - 0.719 * ((.TC / .HDL) / 2)
+    
+    PP_Absolute_Change = NewPP_Cheng_Component - OldPP_Cheng_Component
+    
+    PP = OldPP + PP_Absolute_Change
+    
+    'Derive DBP from the updated SBP and estimated current PP.
+    .DBP = .SBP - PP
+      
+   
+'''''''''''''''''''DBP''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''
 
-
-
-'Since we now calculate the SBP and the DBP each seperately, we don't need to rely on the PP equation anymore as it does not make sense, we can calculate the actual PP
-'by PP = SBP - DBP
-
+''.DBP 'As Single     'Diastolic blood pressure  mmHg
+''.SBP 'As Single     'Systolic blood pressure  mmHg
+'
+'   Dim change_DBP As Double
+'
+'  'ESTIMATING "CHANGE" IN DBP
+'  'Source: Sparrow, D., Garvey, A. J., Rosner, B., & Thomas, H. E., Jr (1982). Factors in predicting blood pressure change. Circulation, 65(4), 789–794. https://doi.org/10.1161/01.cir.65.4.789
+'  'this equation provides the annual change so we will adjust the change by simply dividing it by 2, this is not accurate but it is implemented for simplification
+'
+'  change_DBP = 3.734 + 0.019 * .BMI + 0.022 * .HCT + -0.069 * .DBP
+'  change_DBP = change_DBP * Cycle_Length
+'
+'
+'  .DBP = .DBP + change_DBP
+'
+''Not to exceed
+'If .DBP > 120 Then .DBP = 120
+''Not to be less than
+'If .DBP < 60 Then .DBP = 60
+'
+''************************************* SBP*******************************************
 ' 'Source:Skurnick, J. H., Aladjem, M., & Aviv, A. (2010). Sex differences in pulse pressure trends with age are cross-cultural. Hypertension (Dallas, Tex. : 1979), 55(1), 40–47. https://doi.org/10.1161/HYPERTENSIONAHA.109.139477
 ' Dim PP As Double
 '
@@ -298,7 +412,9 @@ SBP_Absolute_Change = BP_SBP_Absolute_Change(Patient, OldAge, OldBMI)
 '  End If
 '  'Since the SBP is the sum of DBP and PP, SBP will be always higher than DBP.
 '  .SBP = PP + .DBP
-  
+'If .SBP > 250 Then .SBP = 250
+''Not to be less than
+'If .SBP < 50 Then .SBP = 50
   
 '''''''''''''''''Lipid Profile''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''
 
@@ -307,7 +423,10 @@ SBP_Absolute_Change = BP_SBP_Absolute_Change(Patient, OldAge, OldBMI)
 '.TC = 117.91524684254 + .Age * 0.349863603149509 + .BMI * 0.383898943537148 + .HDL * 0.639981592368906
 '.TG = 29.4285552800225 + .Age * 0.359719941182524 + .HbA1C * 8.10184684080546 + .HDL * -2.18061615079943 + .TC * 0.702458795238168
 '.LDL = -4.00216664619377 + .Age * 7.76134075220858E-03 + .BMI * 1.96177895368991E-02 + .HDL * -0.98091869091262 + .TC * 1.00182922724858 + .TG * -0.167405984958064
-
+'Not to exceed
+If .HDL > 100 Then .HDL = 100
+'Not to be less than
+If .HDL < 10 Then .HDL = 10
 
   'REFERENCE: Nagy B, Zsólyom A, Nagyjanosi L, Merész G, Steiner T, Papp E, Dessewffy Z, Jermendy G, Winkler G, Kalo Z, Voko Z. Cost-effectiveness of a risk-based secondary screening programme of type 2 diabetes. Diabetes/Metabolism Research and Reviews. 2016 Oct;32(7):710-29.
 If .Female = True Then
@@ -319,15 +438,22 @@ If .Female = True Then
           
           .TC = Abs(197 - ((197 + -0.0056 * (.Age - Cycle_Length) + 0.0052 * (.Age - Cycle_Length) ^ 2 + 0 * (.Age - Cycle_Length) ^ 3) - .TC)) + (-0.0056 * .Age + 0.0052 * .Age ^ 2 + 0 * .Age ^ 3)
 '          .HDL = Abs(55 - ((55 + 0.0079 * (.Age - Cycle_Length) + 0.0004 * (.Age - Cycle_Length) ^ 2 + 0 * (.Age - Cycle_Length) ^ 3) - .HDL)) + (0.0079 * .Age + 0.0004 * .Age ^ 2 + 0 * .Age ^ 3)
-  
+
 End If
-    
+'Not to exceed
+ If .TC > 248 Then .TC = 248
+'Not to be less than
+If .TC < 98.2 Then .TC = 98.2
+
 'Source: Takada, H., Harrell, J., Deng, S. et al. Eating habits, activity, lipids and body mass index in Japanese children: The Shiratori Children Study. Int J Obes 22, 470–476 (1998). https://doi.org/10.1038/sj.ijo.0800610
 'We are using the equation from the paper to estimate the change in TG based on the change in BMI and adding it to the previous TG
 .TG = .TG + (.BMI * 3.28 + Abs(.physical_activity) * -0.12 + 0 * 0.68 + Abs(.Female) * 11) - (Previous_BMI * 3.28 + Abs(.physical_activity) * -0.12 + 0 * 0.68 + Abs(.Female) * 11)
 '.HDL = .HDL + (.BMI * -1.56 + Abs(.physical_activity) * 2 + 0 * -0.21 + Abs(.Female) * -4.26) - (Previous_BMI * -1.56 + Abs(.physical_activity) * 2 + 0 * -0.21 + Abs(.Female) * -4.26)
 '.TC = .TC + (.BMI * 1.24 + Abs(.physical_activity) * 1.53 + 0 * -1.03 + Abs(.Female) * 0.64) - (Previous_BMI * 1.24 + Abs(.physical_activity) * 1.53 + 0 * -1.03 + Abs(.Female) * 0.64)
-  
+'Not to exceed
+If .TG > 344.5 Then .TG = 344.5
+'Not to be less than
+If .TG < 60 Then .TG = 60
   
 ''''''''''''''''''''''LDL''''''''''''''''''''''''''''''''''
   
@@ -335,7 +461,10 @@ End If
   ' NON-HDL= TC-HDL
   
 .LDL = (.TC / 0.948) - (.HDL / 0.971) - ((.TG / 8.56) + (.TG * (.TC - .HDL) / 2140) - (.TG ^ 2) / 16100) - 9.44
-
+'Not to exceed
+If .LDL > 700 Then .LDL = 700
+'Not to be less than
+If .LDL < 10 Then .LDL = 10
 
 ''''''''''''Diabetes parameters are mostly MANAGED BY THE DIABETES MODEL
 '''''''''''''''''''HbA1C'''''''''''''''''''''''''''''''''''
@@ -392,7 +521,10 @@ End If
       'A1Cmmol= 10.929 * (.hba1c  - 2.15)
       'FBSmmol/l= (A1Cmmol-24.01)/3.99
       '.FBS= FBSmmol/l*18
-
+'Not to exceed
+If .FBS > 1500 Then .FBS = 1500
+'Not to be less than
+If .FBS < 30 Then .FBS = 30
   
       
 '''''''''''''''''VARIABLES'''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''
@@ -844,30 +976,6 @@ otherwise the porbability of developing the comorbiditiy will rely on last year 
                   .MI_history = True
                         
             End If
-            
-            
-            'QRS is updated once per cycle before HF incidence because ProbHF uses Patient.QRS
-            'If HF occurs during this cycle, its effect on QRS is reflected in the next cycle
-            
-            Call Update_QRS(Patient)
-            
-            
-            'HF
-            
-            If .HF = True Or (1 - (1 - ProbHF(Patient)) ^ (Cycle_Length)) > RandArray(.ID, .time_elapsed / Cycle_Length, 54) Then
-                  
-                  '.HF 'As Boolean    ' true=present , false= absent
-                  .HF = True
-                  
-'                  If .Age_First_MI = 0 Then .Age_First_MI = .Age
-'
-'                  Call HF(Patient)
-'
-'                  'MI_history 'As Boolean  ' true= history of MI
-'                  .HF_history = True
-                        
-            End If
-            
       
 End With
 
@@ -984,6 +1092,7 @@ End With
 
 'Cap HbA1c to clinically feasible values to avoid outliers
 If HbA1CProg > 20 Then HbA1CProg = 20
+If HbA1CProg < 5 Then HbA1CProg = 5
 
 End Function
 
@@ -997,4 +1106,3 @@ Function HbAlc_Perc(HbAlc_mmol As Single) As Single
 HbAlc_Perc = (HbAlc_mmol * 0.0915) * 2.25
 
 End Function
-

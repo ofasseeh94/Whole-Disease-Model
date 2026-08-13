@@ -63,7 +63,7 @@ Dim Interventions_Matrix As Variant
 Interventions_Matrix = Range("Interventions")
 
 'Get number of interventions
-NInterventions = UBound(Interventions_Matrix) - 1
+NInterventions = UBound(Interventions_Matrix)
 
 'check how many interventions are active in the model
 Dim Temp_Matrix As Variant

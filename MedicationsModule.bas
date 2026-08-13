@@ -25,7 +25,7 @@ Type Diabetes_Medication
 
     'Economic Inputs
     Cost_Daily As Currency              'Daily cost of the drug
-    Source As String                    'Source of evidence or study
+    source As String                    'Source of evidence or study
 
     'Use Characteristics
     Durability As Single                'Duration of effect (months)
@@ -65,7 +65,7 @@ Sub Load_Diabetes_Meds()
             .Minor_Hypoglycemia = CSng(Diabetes_Medications_Matrix(i, 9))
             .Major_Hypoglycemia = CSng(Diabetes_Medications_Matrix(i, 10))
             .Cost_Daily = CCur(Diabetes_Medications_Matrix(i, 11))
-            .Source = CStr(Diabetes_Medications_Matrix(i, 12))
+            .source = CStr(Diabetes_Medications_Matrix(i, 12))
             .Durability = CSng(Diabetes_Medications_Matrix(i, 13))
             .Compliance = CSng(Diabetes_Medications_Matrix(i, 14))
             .Adherence = CSng(Diabetes_Medications_Matrix(i, 15))

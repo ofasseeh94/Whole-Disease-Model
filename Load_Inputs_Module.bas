@@ -16,7 +16,6 @@ Public Temp_Array As Variant
 Public Disc_Costs As Double
 Public Disc_QALYs As Double
 
-
 'Set a global variable as an array which collects probabilities of death from all sub models
 Public Mortality_Arr() As Double
 Public General_Mortality_Matrix() As Variant
@@ -63,22 +62,83 @@ Public Baseline_HDL
 Public Baseline_TG
 Public Baseline_TC
 Public Baseline_LDL
-
 '__________________________________________________________________________________________________________________________
 
-'Stroke risk reference values for Hunter et al. ischemic stroke equation
-'Systolic blood pressure values
-Public Stroke_Mean_SBP_Under50 As Double, Stroke_Mean_SBP_50_59 As Double, Stroke_Mean_SBP_60_69 As Double, Stroke_Mean_SBP_70Plus As Double
-Public Stroke_SD_SBP_Under50 As Double, Stroke_SD_SBP_50_59 As Double, Stroke_SD_SBP_60_69 As Double, Stroke_SD_SBP_70Plus As Double
+'Load publicly reference arrays for CKD risk scoring
+Public CKD_Age_Score_Table As Variant
+Public CKD_Sex_Score_Table As Variant
+Public CKD_BMI_Score_Table As Variant
+Public CKD_Diabetes_Score_Table As Variant
+Public CKD_SBP_Score_Table As Variant
+Public CKD_RiskScore_Table As Variant
 
-'Diastolic blood pressure values
-Public Stroke_Mean_DBP_Under50 As Double, Stroke_Mean_DBP_50_59 As Double, Stroke_Mean_DBP_60_69 As Double, Stroke_Mean_DBP_70Plus As Double
-Public Stroke_SD_DBP_Under50 As Double, Stroke_SD_DBP_50_59 As Double, Stroke_SD_DBP_60_69 As Double, Stroke_SD_DBP_70Plus As Double
+Public Sub Load_CKD_Risk_Score_Tables()
 
-'Body mass index values
-Public Stroke_Mean_BMI_Under50 As Double, Stroke_Mean_BMI_50_59 As Double, Stroke_Mean_BMI_60_69 As Double, Stroke_Mean_BMI_70Plus As Double
-Public Stroke_SD_BMI_Under50 As Double, Stroke_SD_BMI_50_59 As Double, Stroke_SD_BMI_60_69 As Double, Stroke_SD_BMI_70Plus As Double
-'__________________________________________________________________________________________________________________________
+    '   Load the simplified CKD risk-score tables once
+    '
+    ' Source:
+    '   Saranburut K, Vathesatogkit P, Thongmung N, et al.
+    '   Risk scores to predict decreased glomerular filtration rate at 10 years in an Asian general population BMC Nephrology. 2017;18:240
+    '   Table 3, Model 1 (BMI)
+    '
+    ' Why Model 1 BMI:
+    '   This version does not require baseline eGFR
+    '   It uses variables already available in the patient object:
+    '       Age, Female, BMI, DM, SBP
+    '
+    ' Table structure:
+    '   Each row is:
+    '       lower boundary, upper boundary, score or probability
+    '
+    ' Notes:
+    '   The final CKD_RiskScore_Table stores the published 10-year risk as decimals
+    '   Example: 0.18 = 18% 10-year risk
+    '====================================================================================
+
+    CKD_Age_Score_Table = Array( _
+        Array(0, 44.999, 0), _
+        Array(45, 54.999, 2), _
+        Array(55, 200, 4))
+
+    CKD_Sex_Score_Table = Array( _
+        Array(0, 0, 0), _
+        Array(1, 1, 2))
+
+    CKD_BMI_Score_Table = Array( _
+        Array(0, 24.999, 0), _
+        Array(25, 200, 1))
+
+    CKD_Diabetes_Score_Table = Array( _
+        Array(0, 0, 0), _
+        Array(1, 1, 2))
+
+    CKD_SBP_Score_Table = Array( _
+        Array(0, 119.999, -2), _
+        Array(120, 129.999, 0), _
+        Array(130, 139.999, 1), _
+        Array(140, 149.999, 2), _
+        Array(150, 159.999, 2), _
+        Array(160, 300, 3))
+
+    CKD_RiskScore_Table = Array( _
+        Array(-999, -2, 0.01), _
+        Array(-1, -1, 0.02), _
+        Array(0, 0, 0.03), _
+        Array(1, 1, 0.04), _
+        Array(2, 2, 0.04), _
+        Array(3, 3, 0.06), _
+        Array(4, 4, 0.07), _
+        Array(5, 5, 0.09), _
+        Array(6, 6, 0.11), _
+        Array(7, 7, 0.14), _
+        Array(8, 8, 0.18), _
+        Array(9, 9, 0.23), _
+        Array(10, 10, 0.3), _
+        Array(11, 11, 0.34), _
+        Array(12, 999, 0.5))
+
+End Sub
+'_________________________________________________________________________________________________________________________
 
 'Diabetetstreatment algorithm
 Public BaseLine_HbA1C As Single
@@ -117,15 +177,11 @@ Disutility_Method = Range("Disutility_Method")
 PreparePatientCohort
 Call Load_Patient_Characteristics
 
-'Calculate baseline stroke reference means and SDs once after the patient cohort has been loaded
-Call Load_Stroke_Risk_Reference_Values
+'Load CKD risk score tables
+Call Load_CKD_Risk_Score_Tables
 
 'load random numbers
-RandArray = GenerateRandomArray(NPatients, Timehorizon / Cycle_Length, 54, 42)
-
-'Calculate QRS for each loaded patient
-'QRS is stored in Patient.QRS and is updated during cycle progression in characteristics progression
-Call Initialize_QRS
+RandArray = GenerateRandomArray(NPatients, Timehorizon / Cycle_Length, 52, 42)
 
 'Preparation: load interventions info
 Interventions = Load_Interventions

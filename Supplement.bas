@@ -483,104 +483,104 @@ Sub ShellSortDescending(ByRef a() As Double)
 
 End Sub
 
-Function Build_Stroke_Reference_Array() As Variant
-
-    'Creates a temporary in-memory matrix from Patient_Cohort_Matrix
-    
-    'Patient_Cohort_Matrix columns:
-    '   Column 2  = Age
-    '   Column 3  = BMI
-    '   Column 19 = SBP
-    '   Column 20 = DBP
-    
-    'Temporary array columns:
-    '   Column 1 = age group string
-    '   Column 2 = SBP
-    '   Column 3 = DBP
-    '   Column 4 = BMI
-
-    Dim StrokeReferenceArray As Variant
-    Dim i As Long
-    Dim PatientRow As Long
-
-    ReDim StrokeReferenceArray(1 To NPatients, 1 To 4)
-
-    For i = 1 To NPatients
-
-        PatientRow = i + 1
-
-        If Patient_Cohort_Matrix(PatientRow, 2) < 50 Then
-            StrokeReferenceArray(i, 1) = "<50"
-        ElseIf Patient_Cohort_Matrix(PatientRow, 2) < 60 Then
-            StrokeReferenceArray(i, 1) = "50-59"
-        ElseIf Patient_Cohort_Matrix(PatientRow, 2) < 70 Then
-            StrokeReferenceArray(i, 1) = "60-69"
-        Else
-            StrokeReferenceArray(i, 1) = "70+"
-        End If
-
-        StrokeReferenceArray(i, 2) = Patient_Cohort_Matrix(PatientRow, 19)
-        StrokeReferenceArray(i, 3) = Patient_Cohort_Matrix(PatientRow, 20)
-        StrokeReferenceArray(i, 4) = Patient_Cohort_Matrix(PatientRow, 3)
-
-    Next i
-
-    Build_Stroke_Reference_Array = StrokeReferenceArray
-
-End Function
-
-Function Stroke_Reference_Mean(StrokeReferenceArray As Variant, AgeGroup As String, ValueColumn As Integer) As Double
-
-    'Filters the temporary stroke reference array by age group, extracts one
-    'variable column, and returns the mean.
-
-    Dim FilteredArray As Variant
-    Dim ValueArray As Variant
-
-    If Stroke_Reference_Count(StrokeReferenceArray, AgeGroup) = 0 Then
-        Stroke_Reference_Mean = 0
-        Exit Function
-    End If
-
-    FilteredArray = FilterArray(StrokeReferenceArray, 1, AgeGroup)
-    ValueArray = ConvUnivariant(FilteredArray, ValueColumn)
-
-    Stroke_Reference_Mean = Application.WorksheetFunction.Average(ValueArray)
-
-End Function
-
-Function Stroke_Reference_SD(StrokeReferenceArray As Variant, AgeGroup As String, ValueColumn As Integer) As Double
-
-    'Filters the temporary stroke reference array by age group, extracts one
-    'variable column, and returns the sample standard deviation.
-
-    Dim FilteredArray As Variant
-    Dim ValueArray As Variant
-
-    If Stroke_Reference_Count(StrokeReferenceArray, AgeGroup) < 2 Then
-        Stroke_Reference_SD = 0
-        Exit Function
-    End If
-
-    FilteredArray = FilterArray(StrokeReferenceArray, 1, AgeGroup)
-    ValueArray = ConvUnivariant(FilteredArray, ValueColumn)
-
-    Stroke_Reference_SD = Application.WorksheetFunction.StDev_S(ValueArray)
-
-End Function
-
-Function Stroke_Reference_Count(StrokeReferenceArray As Variant, AgeGroup As String) As Long
-
-    'Counts patients in each age group before calling FilterArray.
-
-    Dim i As Long
-
-    For i = LBound(StrokeReferenceArray, 1) To UBound(StrokeReferenceArray, 1)
-
-        If StrokeReferenceArray(i, 1) = AgeGroup Then
-            Stroke_Reference_Count = Stroke_Reference_Count + 1
-        End If
-
-    Next i
-
-End Function
+'Function Build_Stroke_Reference_Array() As Variant
+'
+'    'Creates a temporary in-memory matrix from Patient_Cohort_Matrix
+'
+'    'Patient_Cohort_Matrix columns:
+'    '   Column 2  = Age
+'    '   Column 3  = BMI
+'    '   Column 19 = SBP
+'    '   Column 20 = DBP
+'
+'    'Temporary array columns:
+'    '   Column 1 = age group string
+'    '   Column 2 = SBP
+'    '   Column 3 = DBP
+'    '   Column 4 = BMI
+'
+'    Dim StrokeReferenceArray As Variant
+'    Dim i As Long
+'    Dim PatientRow As Long
+'
+'    ReDim StrokeReferenceArray(1 To NPatients, 1 To 4)
+'
+'    For i = 1 To NPatients
+'
+'        PatientRow = i + 1
+'
+'        If Patient_Cohort_Matrix(PatientRow, 2) < 50 Then
+'            StrokeReferenceArray(i, 1) = "<50"
+'        ElseIf Patient_Cohort_Matrix(PatientRow, 2) < 60 Then
+'            StrokeReferenceArray(i, 1) = "50-59"
+'        ElseIf Patient_Cohort_Matrix(PatientRow, 2) < 70 Then
+'            StrokeReferenceArray(i, 1) = "60-69"
+'        Else
+'            StrokeReferenceArray(i, 1) = "70+"
+'        End If
+'
+'        StrokeReferenceArray(i, 2) = Patient_Cohort_Matrix(PatientRow, 19)
+'        StrokeReferenceArray(i, 3) = Patient_Cohort_Matrix(PatientRow, 20)
+'        StrokeReferenceArray(i, 4) = Patient_Cohort_Matrix(PatientRow, 3)
+'
+'    Next i
+'
+'    Build_Stroke_Reference_Array = StrokeReferenceArray
+'
+'End Function
+'
+'Function Stroke_Reference_Mean(StrokeReferenceArray As Variant, AgeGroup As String, ValueColumn As Integer) As Double
+'
+'    'Filters the temporary stroke reference array by age group, extracts one
+'    'variable column, and returns the mean.
+'
+'    Dim FilteredArray As Variant
+'    Dim ValueArray As Variant
+'
+'    If Stroke_Reference_Count(StrokeReferenceArray, AgeGroup) = 0 Then
+'        Stroke_Reference_Mean = 0
+'        Exit Function
+'    End If
+'
+'    FilteredArray = FilterArray(StrokeReferenceArray, 1, AgeGroup)
+'    ValueArray = ConvUnivariant(FilteredArray, ValueColumn)
+'
+'    Stroke_Reference_Mean = Application.WorksheetFunction.Average(ValueArray)
+'
+'End Function
+'
+'Function Stroke_Reference_SD(StrokeReferenceArray As Variant, AgeGroup As String, ValueColumn As Integer) As Double
+'
+'    'Filters the temporary stroke reference array by age group, extracts one
+'    'variable column, and returns the sample standard deviation.
+'
+'    Dim FilteredArray As Variant
+'    Dim ValueArray As Variant
+'
+'    If Stroke_Reference_Count(StrokeReferenceArray, AgeGroup) < 2 Then
+'        Stroke_Reference_SD = 0
+'        Exit Function
+'    End If
+'
+'    FilteredArray = FilterArray(StrokeReferenceArray, 1, AgeGroup)
+'    ValueArray = ConvUnivariant(FilteredArray, ValueColumn)
+'
+'    Stroke_Reference_SD = Application.WorksheetFunction.StDev_S(ValueArray)
+'
+'End Function
+'
+'Function Stroke_Reference_Count(StrokeReferenceArray As Variant, AgeGroup As String) As Long
+'
+'    'Counts patients in each age group before calling FilterArray.
+'
+'    Dim i As Long
+'
+'    For i = LBound(StrokeReferenceArray, 1) To UBound(StrokeReferenceArray, 1)
+'
+'        If StrokeReferenceArray(i, 1) = AgeGroup Then
+'            Stroke_Reference_Count = Stroke_Reference_Count + 1
+'        End If
+'
+'    Next i
+'
+'End Function
