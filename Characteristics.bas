@@ -375,32 +375,48 @@ If .Uric_Acid < 3.98 Then .Uric_Acid = 3.98
       
    
    
-''HCT''
+'''''''''''''''''''HCT''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''
 Dim Change_HCT As Double
-Dim Male As Single
 
-If .Female Then
+'ESTIMATING THE WITHIN-CYCLE CHANGE IN HEMATOCRIT (HCT, percentage points)
+'
+'Source: model-specific multivariable HCT regression supplied for implementation.
+'The supporting bibliographic citation/model-development file was not included with
+'the exported VBA source and should be added here when available.
+'
+'Original absolute-value regression:
+'Predicted HCT = 42.2435294
+'              - 0.293257202 * Age
+'              + 0.00788012742 * Age ^ 2
+'              - 0.0000581892533 * Age ^ 3
+'              + 7.00322478 * Male
+'              + 0.143003991 * BMI
+'              - 0.00189879669 * BMI ^ 2
+'              - 0.852816343 * HbA1c
+'              + 0.0545071927 * HbA1c ^ 2
+'              + 0.910794546 * Smoking
+'              - 0.0562697049 * Male * Age
+'
+'Implementation methodology:
+'Apply only the regression-predicted change from the cycle-start patient state
+'(OldAge and OldBMI) to the updated state. Adding that change to the patient's
+'actual cycle-start HCT preserves the patient's initial HCT rather than replacing
+'it each cycle with the regression's standalone population-average prediction.
+'
+'Female is stored as a VBA Boolean (True = -1, False = 0), so:
+'1 - Abs(.Female) = 0 for females and 1 for males. No separate Male variable is needed.
+'
+'HbA1c, smoking, the intercept, and the main male effect are unchanged between the
+'two states evaluated at this point in the cycle, so their terms cancel from the delta.
+Change_HCT = _
+      -0.293257202 * (.Age - OldAge) _
+      + 0.00788012742 * (.Age ^ 2 - OldAge ^ 2) _
+      - 0.0000581892533 * (.Age ^ 3 - OldAge ^ 3) _
+      + 0.143003991 * (.BMI - OldBMI) _
+      - 0.00189879669 * (.BMI ^ 2 - OldBMI ^ 2) _
+      - 0.0562697049 * (1 - Abs(.Female)) * (.Age - OldAge)
 
-    Male = 0
-    
-    Else
-    
-    Male = 1
-
-End If
-
-.HCT = 42.2435294 _
-        - 0.293257202 * .Age _
-        + 0.00788012742 * .Age ^ 2 _
-        - 0.0000581892533 * .Age ^ 3 _
-        + 7.00322478 * Male _
-        + 0.143003991 * .BMI _
-        - 0.00189879669 * .BMI ^ 2 _
-        - 0.852816343 * .HbA1c _
-        + 0.0545071927 * .HbA1c ^ 2 _
-        + 0.910794546 * .smoking _
-        - 0.0562697049 * Male * .Age
-   
+.HCT = .HCT + Change_HCT   
 '''''''''''''''''''DBP''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''
 
 '.DBP 'As Single     'Diastolic blood pressure  mmHg
