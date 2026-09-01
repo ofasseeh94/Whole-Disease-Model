@@ -57,7 +57,7 @@ For j = 1 To UBound(Interventions)
             With Patients(i)
             
                   'populate baseline characteristics
-                  BaseLine_HbA1C = .HbA1C
+                  BaseLine_HbA1C = .HbA1c
                   Baseline_HDL = .HDL
                   Baseline_TG = .TG
                   Baseline_TC = .TC
@@ -77,17 +77,17 @@ For j = 1 To UBound(Interventions)
                         'if the patient is on the intitial treatment sequence we apply the full treatment effect
                         If onlyDigits(.Diabetes_Treatment_Sequence) Mod 10 = 0 Then
                         
-                              treatment_effect_HbA1C = Application.WorksheetFunction.Min(0, Application.WorksheetFunction.Norm_Inv(RandArray(.ID, .time_elapsed * 2, 22), .Diabetes_Drug.HbA1C_Reduction_Mean, .Diabetes_Drug.HbA1C_Reduction_SE))
+                              treatment_effect_HbA1C = Application.WorksheetFunction.Min(0, Application.WorksheetFunction.Norm_Inv(RandArray(.ID, .time_elapsed * 2, 22), .Diabetes_Drug.HbA1C_Reduction_Mean_Adj, .Diabetes_Drug.HbA1C_Reduction_SE))
                         
                         Else
                         
-                              treatment_effect_HbA1C = Application.WorksheetFunction.Min(0, Application.WorksheetFunction.Norm_Inv(RandArray(.ID, .time_elapsed * 2, 22), .Diabetes_Drug.HbA1C_Reduction_Addon_Mean, .Diabetes_Drug.HbA1C_Reduction_Addon_SE))
+                              treatment_effect_HbA1C = Application.WorksheetFunction.Min(0, Application.WorksheetFunction.Norm_Inv(RandArray(.ID, .time_elapsed * 2, 22), .Diabetes_Drug.HbA1C_Reduction_Addon_Mean_Adj, .Diabetes_Drug.HbA1C_Reduction_Addon_SE))
                         
                         End If
                                           
                         'predict the baseline before taking the last diabetes medication
                         'this is being done to populate the HbA1c equation to calculate the future HbA1c given (duration, baseline, reduction)
-                        Baseline_Before_Medication_HbA1C = Hba1cReverse(.HbA1C, CSng(Patient_Diabetes_History(4)), treatment_effect_HbA1C, 0.980982, 9.3)
+                        Baseline_Before_Medication_HbA1C = Hba1cReverse(.HbA1c, CSng(Patient_Diabetes_History(4)), treatment_effect_HbA1C, 0.980982, 9.3)
                         
                         'Administrative task to fill first DM age data because this is not part of the user inputs in the patient list
                         If .DM_Diagnosis_Age <> 0 Then .Age_First_DM = .DM_Diagnosis_Age Else .Age_First_DM = .Age
@@ -133,7 +133,7 @@ For j = 1 To UBound(Interventions)
                  
                   
                   'Intervention impact on physiological parameters. Intervention will affect only abnormal values.
-                  If .HbA1C > 5.7 Then .HbA1C = .HbA1C * ActiveIntervention.HbA1C_Change
+                  If .HbA1c > 5.7 Then .HbA1c = .HbA1c * ActiveIntervention.HbA1C_Change
                   
                   'TG is already managed in the characteristics module and update based on the BMI value
                   'no need to adjust for it here otherwise it will be double counting for the effect of the surgery

@@ -16,6 +16,7 @@ Public Temp_Array As Variant
 Public Disc_Costs As Double
 Public Disc_QALYs As Double
 
+
 'Set a global variable as an array which collects probabilities of death from all sub models
 Public Mortality_Arr() As Double
 Public General_Mortality_Matrix() As Variant
@@ -71,6 +72,76 @@ Public CKD_BMI_Score_Table As Variant
 Public CKD_Diabetes_Score_Table As Variant
 Public CKD_SBP_Score_Table As Variant
 Public CKD_RiskScore_Table As Variant
+'_________________________________________________________________________________________________________________________
+
+'Diabetetstreatment algorithm
+Public BaseLine_HbA1C As Single
+Public treatment_effect_HbA1C As Single
+Public Baseline_Before_Medication_HbA1C As Single
+Public Time_Start_DM_Medication As Single
+Public Diabetes_Treatment_Algorithm_Matrix As Variant
+Public Diabetes_Medications_Matrix As Variant
+Public Diabetes_Medications() As Diabetes_Medication
+
+'Model Cycle length
+'set in years
+Public Cycle_Length As Double
+Public Current_Year As Integer
+
+Public Sub LoadInputs()
+
+'set cycle length in years
+'the value is provided in month in the model settings
+Cycle_Length = Range("Cycle_Length").Value / 12
+
+'Set the average age of patients
+Avg_Age = Range("Mean_Age").Value
+
+Call Load_General_Mortality
+Call Load_Diabetes_Treatment_Algorithm
+Call Load_Diabetes_Medications
+Call Load_Diabetes_Meds
+
+Current_Year = Year(Now)
+Call Load_Discount_Rates
+Timehorizon = Range("TimeHorizon")
+Disutility_Method = Range("Disutility_Method")
+
+'Load patient cohort
+PreparePatientCohort
+Call Load_Patient_Characteristics
+
+'Call CKD Risk score tables
+Call Load_CKD_Risk_Score_Tables
+
+'load random numbers
+RandArray = GenerateRandomArray(NPatients, Timehorizon / Cycle_Length, 52, 42)
+
+'Preparation: load interventions info
+Interventions = Load_Interventions
+
+'Load data required for submodels
+Call Load_Foot_Ulcer
+Call Load_NASH
+Call Load_Nephro
+Call Load_CHD
+Call Load_CKD
+Call Load_DKA
+Call Load_DLP
+Call Load_DM
+Call Load_HTN
+Call Load_MA
+Call Load_MI
+Call Load_Neuro
+Call Load_OA
+Call Load_OSA
+Call Load_PVD
+Call Load_Retino
+Call Load_Stroke
+Call Load_HypoGly
+
+End Sub
+
 
 Public Sub Load_CKD_Risk_Score_Tables()
 
@@ -138,75 +209,9 @@ Public Sub Load_CKD_Risk_Score_Tables()
         Array(12, 999, 0.5))
 
 End Sub
-'_________________________________________________________________________________________________________________________
 
-'Diabetetstreatment algorithm
-Public BaseLine_HbA1C As Single
-Public treatment_effect_HbA1C As Single
-Public Baseline_Before_Medication_HbA1C As Single
-Public Time_Start_DM_Medication As Single
-Public Diabetes_Treatment_Algorithm_Matrix As Variant
-Public Diabetes_Medications_Matrix As Variant
-Public Diabetes_Medications() As Diabetes_Medication
 
-'Model Cycle length
-'set in years
-Public Cycle_Length As Double
-Public Current_Year As Integer
 
-Public Sub LoadInputs()
-
-'set cycle length in years
-'the value is provided in month in the model settings
-Cycle_Length = Range("Cycle_Length").Value / 12
-
-'Set the average age of patients
-Avg_Age = Range("Mean_Age").Value
-
-Call Load_General_Mortality
-Call Load_Diabetes_Treatment_Algorithm
-Call Load_Diabetes_Medications
-Call Load_Diabetes_Meds
-
-Current_Year = Year(Now)
-Call Load_Discount_Rates
-Timehorizon = Range("TimeHorizon")
-Disutility_Method = Range("Disutility_Method")
-
-'Load patient cohort
-PreparePatientCohort
-Call Load_Patient_Characteristics
-
-'Load CKD risk score tables
-Call Load_CKD_Risk_Score_Tables
-
-'load random numbers
-RandArray = GenerateRandomArray(NPatients, Timehorizon / Cycle_Length, 52, 42)
-
-'Preparation: load interventions info
-Interventions = Load_Interventions
-
-'Load data required for submodels
-Call Load_Foot_Ulcer
-Call Load_NASH
-Call Load_Nephro
-Call Load_CHD
-Call Load_CKD
-Call Load_DKA
-Call Load_DLP
-Call Load_DM
-Call Load_HTN
-Call Load_MA
-Call Load_MI
-Call Load_Neuro
-Call Load_OA
-Call Load_OSA
-Call Load_PVD
-Call Load_Retino
-Call Load_Stroke
-Call Load_HypoGly
-
-End Sub
 
 Sub Load_General_Mortality()
 

@@ -81,7 +81,7 @@ Type Patient                              ' Create user-defined type.
       TC  As Single                       'total cholesterol in mg/dL
       LDL   As Single                     'Low density lipoprotein mg/dL
       HDL   As Single                     'high density lipoprotein mg/dL
-      HbA1C  As Single                    'Hemoglubin A 1 c
+      HbA1c  As Single                    'Hemoglubin A 1 c
       FBS As Single                       'fasting blood glucose mg/dl
       Uric_Acid As Single                  'uric acid in blood mg/dl
       ALT As Single                        'ALT in IU/L
@@ -240,7 +240,7 @@ Dim j As Long
                         .TC = Patient_Cohort_Matrix(i, 32)
                         .LDL = Patient_Cohort_Matrix(i, 33)
                         .HDL = Patient_Cohort_Matrix(i, 34)
-                        .HbA1C = Patient_Cohort_Matrix(i, 35)
+                        .HbA1c = Patient_Cohort_Matrix(i, 35)
                         .FBS = Patient_Cohort_Matrix(i, 36)
                         .Uric_Acid = Patient_Cohort_Matrix(i, 37)
                         .ALT = Patient_Cohort_Matrix(i, 38)
@@ -346,7 +346,7 @@ Public Sub Paste_Patient_Characteristics(Patients() As Patient, InterventionCoun
             .Cells(row, 32).Value = Patients(i).TC
             .Cells(row, 33).Value = Patients(i).LDL
             .Cells(row, 34).Value = Patients(i).HDL
-            .Cells(row, 35).Value = Patients(i).HbA1C
+            .Cells(row, 35).Value = Patients(i).HbA1c
             .Cells(row, 36).Value = Patients(i).FBS
             .Cells(row, 37).Value = Patients(i).Uric_Acid
             .Cells(row, 38).Value = Patients(i).ALT
@@ -461,7 +461,7 @@ Public Sub StorePatientArray(Patients() As Patient, NInterventions As Byte, NPat
             PastePatientArray(i + (NInterventions - 1) * NPatients, 32) = .TC
             PastePatientArray(i + (NInterventions - 1) * NPatients, 33) = .LDL
             PastePatientArray(i + (NInterventions - 1) * NPatients, 34) = .HDL
-            PastePatientArray(i + (NInterventions - 1) * NPatients, 35) = .HbA1C
+            PastePatientArray(i + (NInterventions - 1) * NPatients, 35) = .HbA1c
             PastePatientArray(i + (NInterventions - 1) * NPatients, 36) = .FBS
             PastePatientArray(i + (NInterventions - 1) * NPatients, 37) = .Uric_Acid
             PastePatientArray(i + (NInterventions - 1) * NPatients, 38) = .ALT

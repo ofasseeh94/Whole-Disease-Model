@@ -32,16 +32,16 @@ With Patient
             If Treatment_Line = 0 Then
 
             'effect of first line treatment
-                  Baseline_Before_Medication_HbA1C = .HbA1C
+                  Baseline_Before_Medication_HbA1C = .HbA1c
                   Time_Start_DM_Medication = .time_elapsed
-                  treatment_effect_HbA1C = Application.WorksheetFunction.Min(0, Application.WorksheetFunction.Norm_Inv(RandArray(.ID, .time_elapsed * 2, 22), .Diabetes_Drug.HbA1C_Reduction_Mean, .Diabetes_Drug.HbA1C_Reduction_SE))
+                  treatment_effect_HbA1C = Application.WorksheetFunction.Min(0, Application.WorksheetFunction.Norm_Inv(RandArray(.ID, .time_elapsed * 2, 22), .Diabetes_Drug.HbA1C_Reduction_Mean_Adj, .Diabetes_Drug.HbA1C_Reduction_SE))
 
             Else
 
             'effect of adding a treatment
-                  Baseline_Before_Medication_HbA1C = .HbA1C
+                  Baseline_Before_Medication_HbA1C = .HbA1c
                   Time_Start_DM_Medication = .time_elapsed
-                  treatment_effect_HbA1C = Application.WorksheetFunction.Min(0, Application.WorksheetFunction.Norm_Inv(RandArray(.ID, .time_elapsed * 2, 23), .Diabetes_Drug.HbA1C_Reduction_Addon_Mean, .Diabetes_Drug.HbA1C_Reduction_Addon_SE))
+                  treatment_effect_HbA1C = Application.WorksheetFunction.Min(0, Application.WorksheetFunction.Norm_Inv(RandArray(.ID, .time_elapsed * 2, 23), .Diabetes_Drug.HbA1C_Reduction_Addon_Mean_Adj, .Diabetes_Drug.HbA1C_Reduction_Addon_SE))
 
             End If
             
@@ -183,7 +183,7 @@ Function SeverityCheck(Patient As Patient) As Byte
 
 'check if patient has an extreemly high HbA1C and will NOT be controlled.
 
-      If Patient.HbA1C >= 10 And Predict_Catabolic_Control(Patient) = False Then
+      If Patient.HbA1c >= 10 And Predict_Catabolic_Control(Patient) = False Then
             
             If Patient.FBS > 300 Or (Patient.BMI_Baseline - Patient.BMI) > 10 Then
                                   
@@ -219,7 +219,7 @@ Catabolic_ttt_Effect = Application.WorksheetFunction.Min(0, Application.Workshee
 
 'Check if patient could be controlled after intensive treatment or not.
 'if the criteria for controlled patient is changed in the Diabetes_Controlled function it has to be similar here
-If Patient.HbA1C + Catabolic_ttt_Effect < 7 Then
+If Patient.HbA1c + Catabolic_ttt_Effect < 7 Then
 
       Predict_Catabolic_Control = True
 
@@ -359,7 +359,7 @@ With Patient
 '
 '      Else
 '
-            If Patient.HbA1C < 7 Then Diabetes_Controlled = True
+            If Patient.HbA1c < 8.5 Then Diabetes_Controlled = True
 '
 '      End If
 

@@ -30,7 +30,7 @@ Else
 End If
 
 'Source: Plaeke, P., Beunis, A., Ruppert, M. et al. Review, Performance Comparison, and Validation of Models Predicting Type 2 Diabetes Remission After Bariatric Surgery in a Western European Population. OBES SURG 31, 1549–1560 (2021). https://doi.org/10.1007/s11695-020-05157-0
-Prob_DM_Rem = 5.707 - 0.153 * (.Age - .DM_Diagnosis_Age) - 0.276 * .HbA1C - 1.434 * Abs(.Insulin) - DiabMedsCof
+Prob_DM_Rem = 5.707 - 0.153 * (.Age - .DM_Diagnosis_Age) - 0.276 * .HbA1c - 1.434 * Abs(.Insulin) - DiabMedsCof
 
 Prob_DM_Rem = Exp(Prob_DM_Rem)
 Prob_DM_Rem = Prob_DM_Rem / (1 + Prob_DM_Rem)

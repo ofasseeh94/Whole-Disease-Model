@@ -631,7 +631,7 @@ If .Retino = True And .DM = True Then
 ' The calculations are in the excel file named Macular Edema in the folder Macular Edema calculations
 ProbMA = 0.00293
 ' to adjust for hba1c, Source:Brown JB, Russell A, Chan W, Pedula K, Aickin M. The global diabetes model: user friendly version 3.0. Diabetes research and clinical practice. 2000 Nov 1;50:S15-46.
-ProbMA = ProbMA * (.HbA1C / 10) ^ 1.2
+ProbMA = ProbMA * (.HbA1c / 10) ^ 1.2
 
 Else
 
@@ -645,7 +645,7 @@ End Function
 
 Function ProbNephro(Patient As Patient)
 Dim DM_duration As Double
-Dim HbA1Cmmol As Double
+Dim HbA1cMMol As Double
 
 'Source: Vu, V.N., Le Thi, K.A., Dinh, T.M.D., Nguyen, T.B.M., Le Thi, D.H. and Vu, T.T., 2021. Applying Logistic Regression to Predict Diabetic Nephropathy Based on Some Clinical and Paraclinical Characteristics of Type 2 Diabetic Patients. VNU Journal of Science: Medical and Pharmaceutical Sciences, 37(2).
 'Source for extended equation: Grover G, Gadpayle AK, Sabharwal A. Identifying patients with diabetic nephropathy based on serum creatinine in the presence of covariates in type-2 diabetes: A retrospective study. Biomed Res India. 2012 Oct 1;23(4):1-1.
@@ -684,7 +684,7 @@ DM_duration = .Age - .DM_Diagnosis_Age
      
      'Source: Huang CY, Ting WH, Lo FS, Tsai JD, Sun FJ, Chan CI, Chiang YT, Lin CH, Cheng BW, Wu YL, Hung CM, Lee YJ. Factors associated with diabetic nephropathy in children, adolescents, and adults with type 1 diabetes. J Formos Med Assoc. 2017 Dec;116(12):924-932. doi: 10.1016/j.jfma.2017.09.015. Epub 2017 Oct 23. PMID: 29070437.
             
-            ProbNephro = -20.85 + 0.13 * .Age + 0.56 * .HbA1C + 0.06 * .SBP + 0.03 * .DBP
+            ProbNephro = -20.85 + 0.13 * .Age + 0.56 * .HbA1c + 0.06 * .SBP + 0.03 * .DBP
             ProbNephro = Exp(ProbNephro)
             ProbNephro = ProbNephro / (1 + ProbNephro)
             
@@ -879,7 +879,7 @@ If .DM = True Then
       DM_duration = .Age - .DM_Diagnosis_Age
 
 MBP = (2 * .DBP + .SBP) / 3
-BG = (28.7 * .HbA1C) - 46.7
+BG = (28.7 * .HbA1c) - 46.7
 
 LP5 = -5.2855 + (DM_duration * 0.1412) + (0.0175 * MBP) + (0.007 * BG)
 ProbRetino5 = Exp(LP5) / (1 + Exp(LP5))
@@ -1052,64 +1052,108 @@ End Function
 
 Function ProbCKD(Patient As Patient) As Double
 
-    '   Estimate annual probability of developing decreased GFR / CKD using Saranburut et al. Table 3, Model 1 (BMI)
-    
-    ' Flow:
-    '   1. Read each patient characteristic
-    '   2. Use the public CKD score tables loaded during LoadInputs
-    '   3. Accumulate the total CKD score
-    '   4. Map the total score to the published 10-year risk
-    '   5. Convert the 10-year risk to annual probability
+    'Estimate annual probability of incident CKD.
     '
-    ' Important:
-    '   This function returns annual probability
-    '====================================================================================
+    'Source:
+    'Wen J, Hao J, Zhang Y, et al. Risk scores for predicting incident chronic
+    'kidney disease among rural Chinese people: a village-based cohort study.
+    'BMC Nephrology. 2020;21:120.
+    '
+    'Table 2, Simple clinical model:
+    'Logistic regression using waist circumference, sex, education,
+    'diabetes, and systolic blood pressure.
+    '
+    'The equation first calculates the probability across the study follow-up.
+    'The study median follow-up was 5.6 years, so this is converted to an
+    'annual probability. Characteristics_Progression will then convert the
+    'annual probability to cycle probability using Cycle_Length.
 
-    Dim CKDScore As Integer
-    Dim TenYearCKDRisk As Double
+    Dim LogitRisk As Double
+    Dim FollowUpCKDRisk As Double
+    Dim PrimarySchoolOrAbove As Integer
 
     With Patient
 
-        'Age score:
-        '<45 = 0, 45-54 = 2, >=55 = 4.
-        CKDScore = CKDScore + CKD_Read_From_Table(.Age, CKD_Age_Score_Table)
+        'Education is in the published equation but is not currently loaded
+        'in the Patient type. For now, keep all patients in the reference
+        'education category: rimary school and above = 1.
 
-        'Sex score:
-        'Female = 0, Male = 2.
-        'The model stores Female as Boolean.
-        'Abs(Abs(.Female) - 1) converts it to a male indicator:
-        '   Female=True  -> 0
-        '   Female=False -> 1
-        CKDScore = CKDScore + CKD_Read_From_Table(Abs(Abs(.Female) - 1), CKD_Sex_Score_Table)
+        PrimarySchoolOrAbove = 1
 
-        'BMI score:
-        '<25 = 0, >=25 = 1.
-        CKDScore = CKDScore + CKD_Read_From_Table(.BMI, CKD_BMI_Score_Table)
+        LogitRisk = -6.168 _
+                  + 0.013 * .WC _
+                  + 0.686 * Abs(.Female) _
+                  - 0.532 * PrimarySchoolOrAbove _
+                  + 1.042 * Abs(.DM) _
+                  + 0.025 * .SBP
 
-        'Diabetes score:
-        'No diabetes = 0, diabetes = 2.
-        CKDScore = CKDScore + CKD_Read_From_Table(Abs(.DM), CKD_Diabetes_Score_Table)
+        FollowUpCKDRisk = Exp(LogitRisk) / (1 + Exp(LogitRisk))
 
-        'SBP score:
-        '<120 = -2, 120-129 = 0, 130-139 = 1,
-        '140-149 = 2, 150-159 = 2, >=160 = 3.
-        CKDScore = CKDScore + CKD_Read_From_Table(.SBP, CKD_SBP_Score_Table)
-
-        'Map accumulated score to the published 10-year risk.
-        TenYearCKDRisk = CKD_Read_From_Table(CKDScore, CKD_RiskScore_Table)
-
-        'Convert the published 10-year probability into annual probability.
-        ProbCKD = 1 - (1 - TenYearCKDRisk) ^ (1 / 10)
+        ProbCKD = 1 - (1 - FollowUpCKDRisk) ^ (1 / 5.6)
 
     End With
 
 End Function
 
+'Function ProbCKD(Patient As Patient) As Double
+'
+'    '   Estimate annual probability of developing decreased GFR / CKD using Saranburut et al. Table 3, Model 1 (BMI)
+'
+'    ' Flow:
+'    '   1. Read each patient characteristic
+'    '   2. Use the public CKD score tables loaded during LoadInputs
+'    '   3. Accumulate the total CKD score
+'    '   4. Map the total score to the published 10-year risk
+'    '   5. Convert the 10-year risk to annual probability
+'    '
+'    ' Important:
+'    '   This function returns annual probability
+'    '====================================================================================
+'
+'    Dim CKDScore As Integer
+'    Dim TenYearCKDRisk As Double
+'
+'    With Patient
+'
+'        'Age score:
+'        '<45 = 0, 45-54 = 2, >=55 = 4.
+'        CKDScore = CKDScore + CKD_Read_From_Table(.Age, CKD_Age_Score_Table)
+'
+'        'Sex score:
+'        'Female = 0, Male = 2.
+'        'The model stores Female as Boolean.
+'        'Abs(Abs(.Female) - 1) converts it to a male indicator:
+'        '   Female=True  -> 0
+'        '   Female=False -> 1
+'        CKDScore = CKDScore + CKD_Read_From_Table(Abs(Abs(.Female) - 1), CKD_Sex_Score_Table)
+'
+'        'BMI score:
+'        '<25 = 0, >=25 = 1.
+'        CKDScore = CKDScore + CKD_Read_From_Table(.BMI, CKD_BMI_Score_Table)
+'
+'        'Diabetes score:
+'        'No diabetes = 0, diabetes = 2.
+'        CKDScore = CKDScore + CKD_Read_From_Table(Abs(.DM), CKD_Diabetes_Score_Table)
+'
+'        'SBP score:
+'        '<120 = -2, 120-129 = 0, 130-139 = 1,
+'        '140-149 = 2, 150-159 = 2, >=160 = 3.
+'        CKDScore = CKDScore + CKD_Read_From_Table(.SBP, CKD_SBP_Score_Table)
+'
+'        'Map accumulated score to the published 10-year risk.
+'        TenYearCKDRisk = CKD_Read_From_Table(CKDScore, CKD_RiskScore_Table)
+'
+'        'Convert the published 10-year probability into annual probability.
+'        ProbCKD = 1 - (1 - TenYearCKDRisk) ^ (1 / 10)
+'
+'    End With
+'
+'End Function
 
 
-'Function ProbCKD(patient As patient) As Double
+'Function ProbCKD(Patient As Patient) As Double
 ''Source: Chien KL, Lin HJ, Lee BC, Hsu HC, Lee YT, Chen MF. A prediction model for the risk of incident chronic kidney disease. The American journal of medicine. 2010 Sep 1;123(9):836-46.
-'With patient
+'With Patient
 '
 '    ' Calculate the score for age
 '      Dim ageScore As Integer
@@ -1128,14 +1172,18 @@ End Function
 '    ' Calculate the score for BMI
 '    'disabled BMI scoring and setted it to the reference BMI score in the other publication because in this study only non obese patients were considered
 '    Dim bmiScore As Integer
-''    If .BMI >= 26 Then
-''        bmiScore = 2
-''    ElseIf .BMI >= 21 Then
-''        bmiScore = 1
-''    Else
-''        bmiScore = 0
-''    End If
-'    bmiScore = 1
+'
+'    If .BMI >= 26 Then
+'        bmiScore = 2
+'    ElseIf .BMI >= 21 Then
+'        bmiScore = 1
+'    Else
+'        bmiScore = 0
+'    End If
+'
+'      'in case BMI is above 30 use the reference case 1 then we will adjust at the end based on the BMI
+'      If .BMI >= 30 Then bmiScore = 1
+''    bmiScore = 1
 '
 '
 '    ' Calculate the score for diastolic blood pressure
@@ -1216,23 +1264,24 @@ End Function
 '
 ''Adjust the risk of CKD by the BMI of bigger range because the original study only considered non obese patients
 ''Herrington, W. G., Smith, M., Bankhead, C., Matsushita, K., Stevens, S., Holt, T., ... & Woodward, M. (2017). Body-mass index and risk of advanced chronic kidney disease: prospective analyses from a primary care cohort of 1.4 million adults in England. PloS one, 12(3), e0173515.
-''the paper reported Hazard Ratios for CKD stage 4-5 which was assumed to be as the RR
-'      If .BMI < 20 Then
-'            ProbCKD = ProbCKD * 0.98
-'      'reference group
-'      ElseIf .BMI < 25 Then
-'            ProbCKD = ProbCKD * 1
-'      ElseIf .BMI < 30 Then
-'            ProbCKD = ProbCKD * 1.2
-'      ElseIf .BMI < 35 Then
-'            ProbCKD = ProbCKD * 1.54
+''WE ONLY USE THIS IF THE BMI IS ABOVE 26
+'
+'      'check if BMI is above 30 in that case we will proceed if it is less skip this step
+'      If .BMI < 30 Then GoTo SkipBMIAdj
+'
+'      If .BMI < 35 Then
+'            ProbCKD = 1 - (1 - ProbCKD) ^ (1.54)
 '      Else
-'            ProbCKD = ProbCKD * 2.19
+'            ProbCKD = 1 - (1 - ProbCKD) ^ (2.19)
 '      End If
+'
+'SkipBMIAdj:
 '
 'End With
 '
+'
 'End Function
+
 
 Function ProbHF(Patient As Patient)
 'Source: Khan, S. S., Ning, H., Shah, S. J., Yancy, C. W., Carnethon, M., Berry, J. D., Mentz, R. J., O'Brien, E., Correa, A., Suthahar, N., de Boer, R. A., Wilkins, J. T., & Lloyd-Jones, D. M. (2019). 10-Year Risk Equations for Incident Heart Failure in the General Population. Journal of the American College of Cardiology, 73(19), 2388–2397. https://doi.org/10.1016/j.jacc.2019.02.057

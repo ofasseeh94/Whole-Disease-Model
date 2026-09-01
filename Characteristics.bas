@@ -201,8 +201,8 @@ logalt = 0.869729371643 _
     + 0.005778417906 * gender_num * .HDL _
     - 0.000269235297 * .TC _
     - 0.000129487219 * gender_num * .TC _
-    + 0.03976057495 * .HbA1C _
-    - 0.037293983897 * gender_num * .HbA1C _
+    + 0.03976057495 * .HbA1c _
+    - 0.037293983897 * gender_num * .HbA1c _
     + 0.145572713216 * Log(.TG) _
     + 0.076272540433 * gender_num * Log(.TG)
 
@@ -221,8 +221,8 @@ logast = 2.663579890036 _
     + 0.003032110804 * gender_num * .HDL _
     + 0.000082453091 * .TC _
     + 0.000452513699 * gender_num * .TC _
-    + 0.005526204277 * .HbA1C _
-    - 0.010010722564 * gender_num * .HbA1C
+    + 0.005526204277 * .HbA1c _
+    - 0.010010722564 * gender_num * .HbA1c
 
 .AST = 1.0801390328268 * Exp(logast)
 
@@ -245,8 +245,8 @@ logggt = -1.037754095807 _
     + 0.010076180848 * gender_num * .HDL _
     - 0.001041803282 * .TC _
     + 0.001545055732 * gender_num * .TC _
-    + 0.126042883901 * .HbA1C _
-    - 0.070027400341 * gender_num * .HbA1C _
+    + 0.126042883901 * .HbA1c _
+    - 0.070027400341 * gender_num * .HbA1c _
     + 0.387868620771 * lntg _
     + 0.013554995466 * gender_num * lntg
 
@@ -319,107 +319,133 @@ If .Uric_Acid > 10.3 Then .Uric_Acid = 10.3
 If .Uric_Acid < 3.98 Then .Uric_Acid = 3.98
       
 
-  
 '************************************* SBP*******************************************
 'Update SBP after BMI and age have been updated
 'This calculation applies only the expected change on top of the base SBP to account for the original model situation, to account for the model conditions in treatment resistant or
 'unctonrolled hypertension population
 
-Dim SBP_Absolute_Change As Single
-
-SBP_Absolute_Change = BP_SBP_Absolute_Change(Patient, OldAge, OldBMI)
-
-    'Apply only the model-predicted absolute SBP change on top of the patient's actual cycle-start SBP. This preserves baseline resistant/uncontrolled hypertension
-    'burden and prevents the equation from replacing actual patient SBP with anaverage predicted value.
-    If OldSBP > 0 Then
-        .SBP = OldSBP + SBP_Absolute_Change
-    End If
-'Important:
-'Table 2 reports coefficients for longitudinal tracking/change, not a full absolute PP prediction
-'equation with an intercept. Therefore, we calculate the change from old patient state to current
-'patient state, then apply that change to the patient's actual cycle-start PP.
-
-Dim OldPP As Double
-Dim OldPP_Cheng_Component As Double
-Dim NewPP_Cheng_Component As Double
-Dim PP_Absolute_Change As Double
-Dim PP As Double
-
-    OldPP = OldSBP - OldDBP
-    
-    OldPP_Cheng_Component = _
-          4.656 * ((OldAge - 49) / 10) _
-        + 6.241 * Abs(Abs(.Female) - 1) _
-        - 1.31 * ((OldAge - 49) / 10) * Abs(Abs(.Female) - 1) _
-        + 1.739 * (OldBMI / 5) _
-        - 0.993 * Abs(Abs(.Female) - 1) * (OldBMI / 5) _
-        + 0.557 * Abs(.smoking) _
-        + 4.571 * Abs(.DM) _
-        - 0.719 * ((.TC / .HDL) / 2)
-    
-    NewPP_Cheng_Component = _
-          4.656 * ((.Age - 49) / 10) _
-        + 6.241 * Abs(Abs(.Female) - 1) _
-        - 1.31 * ((.Age - 49) / 10) * Abs(Abs(.Female) - 1) _
-        + 1.739 * (.BMI / 5) _
-        - 0.993 * Abs(Abs(.Female) - 1) * (.BMI / 5) _
-        + 0.557 * Abs(.smoking) _
-        + 4.571 * Abs(.DM) _
-        - 0.719 * ((.TC / .HDL) / 2)
-    
-    PP_Absolute_Change = NewPP_Cheng_Component - OldPP_Cheng_Component
-    
-    PP = OldPP + PP_Absolute_Change
-    
-    'Derive DBP from the updated SBP and estimated current PP.
-    .DBP = .SBP - PP
+'Dim SBP_Absolute_Change As Single
+'
+'SBP_Absolute_Change = BP_SBP_Absolute_Change(Patient, OldAge, OldBMI)
+'
+'    'Apply only the model-predicted absolute SBP change on top of the patient's actual cycle-start SBP. This preserves baseline resistant/uncontrolled hypertension
+'    'burden and prevents the equation from replacing actual patient SBP with anaverage predicted value.
+'    If OldSBP > 0 Then
+'        .SBP = OldSBP + SBP_Absolute_Change
+'    End If
+''Important:
+''Table 2 reports coefficients for longitudinal tracking/change, not a full absolute PP prediction
+''equation with an intercept. Therefore, we calculate the change from old patient state to current
+''patient state, then apply that change to the patient's actual cycle-start PP.
+'
+'Dim OldPP As Double
+'Dim OldPP_Cheng_Component As Double
+'Dim NewPP_Cheng_Component As Double
+'Dim PP_Absolute_Change As Double
+'Dim PP As Double
+'
+'    OldPP = OldSBP - OldDBP
+'
+'    OldPP_Cheng_Component = _
+'          4.656 * ((OldAge - 49) / 10) _
+'        + 6.241 * Abs(Abs(.Female) - 1) _
+'        - 1.31 * ((OldAge - 49) / 10) * Abs(Abs(.Female) - 1) _
+'        + 1.739 * (OldBMI / 5) _
+'        - 0.993 * Abs(Abs(.Female) - 1) * (OldBMI / 5) _
+'        + 0.557 * Abs(.smoking) _
+'        + 4.571 * Abs(.DM) _
+'        - 0.719 * ((.TC / .HDL) / 2)
+'
+'    NewPP_Cheng_Component = _
+'          4.656 * ((.Age - 49) / 10) _
+'        + 6.241 * Abs(Abs(.Female) - 1) _
+'        - 1.31 * ((.Age - 49) / 10) * Abs(Abs(.Female) - 1) _
+'        + 1.739 * (.BMI / 5) _
+'        - 0.993 * Abs(Abs(.Female) - 1) * (.BMI / 5) _
+'        + 0.557 * Abs(.smoking) _
+'        + 4.571 * Abs(.DM) _
+'        - 0.719 * ((.TC / .HDL) / 2)
+'
+'    PP_Absolute_Change = NewPP_Cheng_Component - OldPP_Cheng_Component
+'
+'    PP = OldPP + PP_Absolute_Change
+'
+'    'Derive DBP from the updated SBP and estimated current PP.
+'    .DBP = .SBP - PP
       
+   
+   
+''HCT''
+Dim Change_HCT As Double
+Dim Male As Single
+
+If .Female Then
+
+    Male = 0
+    
+    Else
+    
+    Male = 1
+
+End If
+
+.HCT = 42.2435294 _
+        - 0.293257202 * .Age _
+        + 0.00788012742 * .Age ^ 2 _
+        - 0.0000581892533 * .Age ^ 3 _
+        + 7.00322478 * Male _
+        + 0.143003991 * .BMI _
+        - 0.00189879669 * .BMI ^ 2 _
+        - 0.852816343 * .HbA1c _
+        + 0.0545071927 * .HbA1c ^ 2 _
+        + 0.910794546 * .smoking _
+        - 0.0562697049 * Male * .Age
    
 '''''''''''''''''''DBP''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''
 
-''.DBP 'As Single     'Diastolic blood pressure  mmHg
-''.SBP 'As Single     'Systolic blood pressure  mmHg
-'
-'   Dim change_DBP As Double
-'
-'  'ESTIMATING "CHANGE" IN DBP
-'  'Source: Sparrow, D., Garvey, A. J., Rosner, B., & Thomas, H. E., Jr (1982). Factors in predicting blood pressure change. Circulation, 65(4), 789–794. https://doi.org/10.1161/01.cir.65.4.789
-'  'this equation provides the annual change so we will adjust the change by simply dividing it by 2, this is not accurate but it is implemented for simplification
-'
-'  change_DBP = 3.734 + 0.019 * .BMI + 0.022 * .HCT + -0.069 * .DBP
-'  change_DBP = change_DBP * Cycle_Length
-'
-'
-'  .DBP = .DBP + change_DBP
-'
-''Not to exceed
-'If .DBP > 120 Then .DBP = 120
-''Not to be less than
-'If .DBP < 60 Then .DBP = 60
+'.DBP 'As Single     'Diastolic blood pressure  mmHg
+'.SBP 'As Single     'Systolic blood pressure  mmHg
+
+   Dim change_DBP As Double
+
+  'ESTIMATING "CHANGE" IN DBP
+  'Source: Sparrow, D., Garvey, A. J., Rosner, B., & Thomas, H. E., Jr (1982). Factors in predicting blood pressure change. Circulation, 65(4), 789–794. https://doi.org/10.1161/01.cir.65.4.789
+  'this equation provides the annual change so we will adjust the change by simply dividing it by 2, this is not accurate but it is implemented for simplification
+
+  change_DBP = 3.734 + 0.019 * .BMI + 0.022 * .HCT + -0.069 * .DBP
+  change_DBP = change_DBP * Cycle_Length
+
+
+  .DBP = .DBP + change_DBP
+
+'Not to exceed
+If .DBP > 120 Then .DBP = 120
+'Not to be less than
+If .DBP < 60 Then .DBP = 60
 '
 ''************************************* SBP*******************************************
-' 'Source:Skurnick, J. H., Aladjem, M., & Aviv, A. (2010). Sex differences in pulse pressure trends with age are cross-cultural. Hypertension (Dallas, Tex. : 1979), 55(1), 40–47. https://doi.org/10.1161/HYPERTENSIONAHA.109.139477
-' Dim PP As Double
-'
-'  If .Female = True Then
-'
-'    PP = 41.9 + (.Age - 40) * 0.337 + (.Age - 40) ^ 2 * 0.0136
-'
-'  Else
-'
-'     PP = 43.4 + (.Age - 40) * 0.128 + (.Age - 40) ^ 2 * 0.0147
-'
-'  End If
-'  'Since the SBP is the sum of DBP and PP, SBP will be always higher than DBP.
-'  .SBP = PP + .DBP
-'If .SBP > 250 Then .SBP = 250
-''Not to be less than
-'If .SBP < 50 Then .SBP = 50
+ 'Source:Skurnick, J. H., Aladjem, M., & Aviv, A. (2010). Sex differences in pulse pressure trends with age are cross-cultural. Hypertension (Dallas, Tex. : 1979), 55(1), 40–47. https://doi.org/10.1161/HYPERTENSIONAHA.109.139477
+ Dim PP As Double
+
+  If .Female = True Then
+
+    PP = 41.9 + (.Age - 40) * 0.337 + (.Age - 40) ^ 2 * 0.0136
+
+  Else
+
+     PP = 43.4 + (.Age - 40) * 0.128 + (.Age - 40) ^ 2 * 0.0147
+
+  End If
+  'Since the SBP is the sum of DBP and PP, SBP will be always higher than DBP.
+  .SBP = PP + .DBP
+If .SBP > 250 Then .SBP = 250
+'Not to be less than
+If .SBP < 50 Then .SBP = 50
   
 '''''''''''''''''Lipid Profile''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''
 
 'NHANES regression models calculating difference and adding to previous value
-.HDL = 72.438026272895 + Abs(.Female) * 8.62416337373032 + .Age * 0.148088531592338 + .BMI * -0.579309555164474 + .HbA1C * -2.26409805223787
+.HDL = 72.438026272895 + Abs(.Female) * 8.62416337373032 + .Age * 0.148088531592338 + .BMI * -0.579309555164474 + .HbA1c * -2.26409805223787
 '.TC = 117.91524684254 + .Age * 0.349863603149509 + .BMI * 0.383898943537148 + .HDL * 0.639981592368906
 '.TG = 29.4285552800225 + .Age * 0.359719941182524 + .HbA1C * 8.10184684080546 + .HDL * -2.18061615079943 + .TC * 0.702458795238168
 '.LDL = -4.00216664619377 + .Age * 7.76134075220858E-03 + .BMI * 1.96177895368991E-02 + .HDL * -0.98091869091262 + .TC * 1.00182922724858 + .TG * -0.167405984958064
@@ -469,17 +495,13 @@ If .LDL < 10 Then .LDL = 10
 ''''''''''''Diabetes parameters are mostly MANAGED BY THE DIABETES MODEL
 '''''''''''''''''''HbA1C'''''''''''''''''''''''''''''''''''
 'HbA1C update
-.HbA1C = HbA1CProg(Patient)
+.HbA1c = HbA1CProg(Patient)
 
       '.DM_recognized 'As Boolean 'True=Patients know that they are diabetic , False= patients don't know
       If .DM = True Then
-            'Source: Gopalan A, Mishra P, Alexeeff S, Blatchins MA, Kim E, Man A, et al. Prevalence and predictors of delayed clinical diagnosis of Type 2 diabetes: a longitudinal cohort study. Diabetic Medicine [Internet]. 2018 Sep 21 [cited 2023 Sep 26];35(12):1655–62. Available from: https://pubmed.ncbi.nlm.nih.gov/30175870/Print
-            '30.2% remained undiagnosed with Type 2 diabetes 1 Year later
-            'converted to be adjusted to 6 month cycle length then modified to diagnosed probability rather than undiagnosed
-            'Diagnosis probability = 1 - undiagnosis probability
             If .DM_recognized = False Then
             
-                  If RandArray(.ID, .time_elapsed / Cycle_Length, 2) < 0.450454733 Then
+                  If RandArray(.ID, .time_elapsed / Cycle_Length, 2) < (1 - (1 - AnnualDiabetesDiagnosisProbability(.HbA1c, .BMI, .Female)) ^ Cycle_Length) Then
                         
                         .DM_recognized = True
                         '.DM_Diagnosis_Age 'As Single    'Age at diagnosis of diabetes, per year
@@ -497,7 +519,8 @@ If .LDL < 10 Then .LDL = 10
       'in the below assumption all diagnosed patients are treated
             If .DM_Treated = False Then
             
-                  If RandArray(.ID, .time_elapsed / Cycle_Length, 3) < 1 Then .DM_Treated = True
+                  'If RandArray(.ID, .time_elapsed / Cycle_Length, 3) < 1 Then .DM_Treated = True
+                  If RandArray(.ID, .time_elapsed / Cycle_Length, 3) < (1 - (1 - AnnualDiabetesTreatmentProbability(.Age, .HbA1c, .Female)) ^ Cycle_Length) Then .DM_Treated = True
                            
             End If
             
@@ -512,7 +535,7 @@ If .LDL < 10 Then .LDL = 10
       'The equation was intended to calculate the HBA1C from FBS but we reverted the equation to propvide the FBS as the subject of formula
       
       
-      .FBS = ((.HbA1C - 3.146) / 0.468) * 18 ' multiplying by 18 to change from mmol/L to mg/dL
+      .FBS = ((.HbA1c - 3.146) / 0.468) * 18 ' multiplying by 18 to change from mmol/L to mg/dL
       If .FBS < 60 Then .FBS = 60
       
       'Source: Reidpath, D.D., Jahan, N.K., Mohan, D. and Allotey, P., 2016. Single, community-based blood glucose readings may be a viable alternative for community surveillance of HbA1c and poor glycaemic control in people with known diabetes in resource-poor settings. Global health action, 9(1), p.31691.
@@ -998,7 +1021,7 @@ With Patient
 
             If .DM_Treated = False Then
             
-                  HbA1CProg = .HbA1C + (((0.055 * Abs(.Female) + 0.063 * 0.5 + 0.04 * 0.5 + 0.679 * .HbA1C + 0.219 * LN(.Age + 1 - .Age_First_DM + 1) + 0.089 * BaseLine_HbA1C + 1.68) - (0.055 * Abs(.Female) + 0.063 * 0.5 + 0.04 * 0.5 + 0.679 * .HbA1C + 0.219 * LN(.Age - .Age_First_DM + 1) + 0.089 * BaseLine_HbA1C + 1.68)) * Cycle_Length)
+                  HbA1CProg = .HbA1c + (((0.055 * Abs(.Female) + 0.063 * 0.5 + 0.04 * 0.5 + 0.679 * .HbA1c + 0.219 * LN(.Age + 1 - .Age_First_DM + 1) + 0.089 * BaseLine_HbA1C + 1.68) - (0.055 * Abs(.Female) + 0.063 * 0.5 + 0.04 * 0.5 + 0.679 * .HbA1c + 0.219 * LN(.Age - .Age_First_DM + 1) + 0.089 * BaseLine_HbA1C + 1.68)) * Cycle_Length)
                   'HbA1CProg = Hba1cProfileParametric(.time_elapsed - Time_Start_DM_Medication, Baseline_Before_Medication_HbA1C, treatment_effect_HbA1C, 0.980982, 9.3)
             Else
                   'The same equation for insulin and non-insulin is kept intentionally. The equation doesnt differentiate except for baseline hba1c and the treatment effect and these differe actually from patient to patient and according to the drug. both equations kept for the future if we find equations that predicts the trajectory by insulin use.
@@ -1051,7 +1074,7 @@ With Patient
                   End If
                   
                   HbA1CProg = 5.398 + AgeCoff + BMIcoff + WCcoff + Abs(.anti_htn_drugs) * 0.05 + Abs(.smoking) * 0.093 + Abs(.family_history_DM) * 0.071
-                  HbA1CProg = .HbA1C + ((HbA1CProg - .HbA1C) / 12)
+                  HbA1CProg = .HbA1c + ((HbA1CProg - .HbA1c) / 12)
             Else
             'male
                   'set age cofficient
@@ -1084,7 +1107,7 @@ With Patient
                   End If
                         
                   HbA1CProg = 5.502 + AgeCoff + BMIcoff + WCcoff + Abs(.anti_htn_drugs) * 0.05 + Abs(.smoking) * 0.133 + Abs(.family_history_DM) * 0.069
-                  HbA1CProg = .HbA1C + ((HbA1CProg - .HbA1C) / 12)
+                  HbA1CProg = .HbA1c + ((HbA1CProg - .HbA1c) / 12)
             End If
       End If
 
@@ -1104,5 +1127,460 @@ End Function
 Function HbAlc_Perc(HbAlc_mmol As Single) As Single
 
 HbAlc_Perc = (HbAlc_mmol * 0.0915) * 2.25
+
+End Function
+
+Function AnnualDiabetesDiagnosisProbability(HbA1c As Single, BMI As Single, Female As Boolean) As Double
+
+'===============================================================================
+' FUNCTION:
+' AnnualDiabetesDiagnosisProbability
+'
+' PURPOSE:
+' Estimates the annual probability that a patient with previously undiagnosed
+' diabetes will receive a clinical diabetes diagnosis during the current year.
+'
+' MODEL LOGIC:
+' 1. HbA1c enters the disease model in NGSP/DCCT units (%).
+'
+' 2. HbA1c is converted internally from % to IFCC units (mmol/mol), because the
+'    Cox regression used to parameterize diagnosis rates reported HbA1c in
+'    mmol/mol categories.
+'
+'       IFCC HbA1c (mmol/mol) = (HbA1c [%] - 2.152) / 0.09148
+'
+'    This is equivalent to approximately:
+'
+'       IFCC HbA1c = (HbA1c [%] - 2.15) * 10.93
+'
+' 3. A hazard-ratio multiplier is constructed from patient characteristics:
+'
+'       Male sex:               HR = 1.12
+'       Female sex:             HR = 1.00 [reference]
+'
+'       BMI <30 kg/m2:          HR = 1.00 [reference]
+'       BMI >=30 kg/m2:         HR = 1.25
+'
+'       HbA1c 48.0-52.9 mmol/mol: HR = 1.00 [reference]
+'       HbA1c 53.0-57.9 mmol/mol: HR = 2.13
+'       HbA1c >=58.0 mmol/mol:     HR = 2.71
+'
+' 4. Cox proportional-hazards logic is used. The individual hazard is:
+'
+'       Individual Hazard = Baseline Hazard * Combined HR
+'
+'    where:
+'
+'       Combined HR =
+'           HR(sex) * HR(BMI) * HR(HbA1c)
+'
+' 5. The hazard is converted into a 1-year probability:
+'
+'       P(Diagnosis during year) = 1 - Exp(-Individual Hazard)
+'
+' IMPORTANT:
+' The published UK Biobank Cox model reported hazard ratios but did not provide
+' a directly implementable absolute baseline hazard for the reference patient.
+'
+' Therefore, the baseline hazard below is CALIBRATED rather than taken directly
+' from the published Cox coefficients. A baseline annual diagnosis probability
+' of 25.5% is currently used:
+'
+'       BaselineHazard = -Ln(1 - 0.255)
+'
+' This value was derived from the approximately 23% remaining undiagnosed at
+' 5 years reported in the UK Biobank analysis, assuming approximately constant
+' annual hazard:
+'
+'       Annual survival = 0.23^(1/5) ~= 0.745
+'
+'       Annual diagnosis probability ~= 1 - 0.745 = 0.255
+'
+' Hence, the absolute probabilities generated by this function should be
+' considered a calibrated approximation based on the published Cox relative
+' effects, rather than an exact reproduction of the original Cox survival model.
+'
+'
+' PRIMARY CLINICAL REFERENCE:
+'
+' Jones A, et al.
+' "The impact of population-level HbA1c screening on reducing diabetes
+' diagnostic delay in middle-aged adults: a UK Biobank analysis."
+' Diabetologia. 2023.
+'
+' The study identified individuals with biochemical evidence of diabetes who
+' did not have a previous clinical diagnosis and followed their subsequent
+' diagnosis in routine care.
+'
+' Key findings used in this function:
+'   - Male vs female: HR 1.12 (95% CI 1.00-1.25)
+'   - BMI >=30 vs <30 kg/m2: HR 1.25 (95% CI 1.12-1.39)
+'   - HbA1c 53.0-57.9 vs 48.0-52.9 mmol/mol:
+'         HR 2.13 (95% CI 1.84-2.46)
+'   - HbA1c >=58.0 vs 48.0-52.9 mmol/mol:
+'         HR 2.71 (95% CI 2.37-3.09)
+'
+' Full text:
+' https://pmc.ncbi.nlm.nih.gov/articles/PMC9807472/
+'
+'
+' HbA1c CONVERSION REFERENCE:
+'
+' National Glycohemoglobin Standardization Program (NGSP) / International
+' Federation of Clinical Chemistry (IFCC).
+'
+' Master equation:
+'
+'       NGSP (%) = 0.09148 * IFCC (mmol/mol) + 2.152
+'
+' Therefore:
+'
+'       IFCC (mmol/mol) = (NGSP [%] - 2.152) / 0.09148
+'
+' NGSP reference:
+' https://ngsp.org/ifcc.asp
+'
+'
+' INPUTS:
+'
+' HbA1cPercent
+'   Patient HbA1c expressed in NGSP/DCCT percentage units.
+'   Example: 7.2 means HbA1c = 7.2%.
+'
+' BMI
+'   Patient body mass index in kg/m2.
+'
+' IsFemale
+'   True  = female
+'   False = male
+'
+'
+' OUTPUT:
+'
+' Annual probability between 0 and 1 that an UNDIGNOSED diabetic patient
+' becomes clinically diagnosed during the current annual model cycle.
+'
+' Example:
+'       0.30 = 30% probability of diagnosis during the year.
+'
+'
+' IMPORTANT APPLICATION:
+'
+' This function should ONLY be applied to patients who:
+'   1. currently have diabetes, AND
+'   2. have not yet been clinically diagnosed.
+'
+' Once a patient becomes diagnosed, this probability should no longer be
+' evaluated for that patient.
+'
+'===============================================================================
+
+    Dim HbA1cMMol As Double
+    Dim HR As Double
+
+    '---------------------------------------------------------------------------
+    ' STEP 1: Convert HbA1c from NGSP percentage to IFCC mmol/mol.
+    '
+    ' Official NGSP/IFCC equation:
+    ' NGSP = 0.09148 * IFCC + 2.152
+    ' Therefore:
+    ' IFCC = (NGSP - 2.152) / 0.09148
+    '---------------------------------------------------------------------------
+
+    HbA1cMMol = (HbA1c - 2.152) / 0.09148
+
+    '---------------------------------------------------------------------------
+    ' STEP 2: Initialise Cox hazard ratio.
+    '
+    ' Reference patient:
+    '   Female
+    '   BMI <30 kg/m2
+    '   HbA1c 48.0-52.9 mmol/mol
+    '---------------------------------------------------------------------------
+
+    HR = 1
+
+    '---------------------------------------------------------------------------
+    ' STEP 3: Sex effect.
+    '
+    ' Jones et al.:
+    ' Male vs female HR = 1.12.
+    '
+    ' Since IsFemale = True represents the reference group,
+    ' the HR is applied only when IsFemale = False.
+    '---------------------------------------------------------------------------
+
+    If Not Female Then HR = HR * 1.12
+
+    '---------------------------------------------------------------------------
+    ' STEP 4: BMI effect.
+    '
+    ' Jones et al.:
+    ' BMI >=30 kg/m2 vs BMI <30 kg/m2:
+    ' HR = 1.25
+    '---------------------------------------------------------------------------
+
+    If BMI >= 30 Then HR = HR * 1.25
+
+    '---------------------------------------------------------------------------
+    ' STEP 5: HbA1c effect.
+    '
+    ' Jones et al. categories:
+    '
+    ' 48.0-52.9 mmol/mol = reference HR 1.00
+    ' 53.0-57.9 mmol/mol = HR 2.13
+    ' >=58.0 mmol/mol     = HR 2.71
+    '---------------------------------------------------------------------------
+
+    If HbA1cMMol >= 58 Then
+
+        HR = HR * 2.71
+
+    ElseIf HbA1cMMol >= 53 Then
+
+        HR = HR * 2.13
+
+    End If
+
+    '---------------------------------------------------------------------------
+    ' STEP 6: Baseline annual hazard.
+    '
+    ' Calibrated using an annual diagnosis probability of approximately 25.5%.
+    '
+    ' For a constant hazard:
+    '
+    ' Probability = 1 - Exp(-Hazard)
+    '
+    ' Therefore:
+    '
+    ' Hazard = -Ln(1 - Probability)
+    '---------------------------------------------------------------------------
+
+    AnnualDiabetesDiagnosisProbability = -Log(1 - 0.255)
+
+    '---------------------------------------------------------------------------
+    ' STEP 7: Apply Cox proportional hazard multiplier.
+    '---------------------------------------------------------------------------
+
+    AnnualDiabetesDiagnosisProbability = AnnualDiabetesDiagnosisProbability * HR
+
+
+    '---------------------------------------------------------------------------
+    ' STEP 8: Convert annual hazard into annual probability.
+    '
+    ' P = 1 - Exp(-hazard)
+    '---------------------------------------------------------------------------
+
+    AnnualDiabetesDiagnosisProbability = 1 - Exp(-AnnualDiabetesDiagnosisProbability)
+    'Return annual probability of receiving a diabetes diagnosis.
+
+End Function
+
+'===============================================================================
+' FUNCTION:
+' AnnualDiabetesTreatmentProbability
+'
+' PURPOSE:
+' Estimates the annual probability that a patient with diagnosed type 2
+' diabetes who is currently NOT receiving pharmacological glucose-lowering
+' therapy will initiate antihyperglycaemic medication during the current year.
+'
+' MODEL TRANSITION:
+'
+'   Diagnosed / recognized diabetes + not treated
+'
+'                         |
+'                         | AnnualDiabetesTreatmentProbability()
+'                         v
+'
+'   Diagnosed / recognized diabetes + pharmacologically treated
+'
+'
+' IMPORTANT:
+' "Treatment" in this function refers to initiation of pharmacological
+' antihyperglycaemic medication.
+'
+'
+' SOURCE:
+'
+' Sinclair AJ, Alexander CM, Davies MJ, Zhao C, Mavros P.
+' Factors associated with initiation of antihyperglycaemic medication in UK
+' patients with newly diagnosed type 2 diabetes.
+' BMC Endocrine Disorders. 2012;12:1.
+'
+' DOI:
+' 10.1186/1472-6823-12-1
+'
+' Study characteristics:
+'   - Retrospective UK cohort
+'   - N = 9,158 newly diagnosed type 2 diabetes patients
+'   - Patients aged >=30 years
+'   - 2-year follow-up after diabetes diagnosis
+'   - Outcome = initiation of antihyperglycaemic medication
+'   - Analysis = multivariable Cox proportional hazards regression
+'
+' Key observed treatment-initiation results:
+'   - 51% of the overall cohort initiated treatment within 2 years.
+'
+'   Among patients with HbA1c >=7.5%:
+'       73% initiated treatment within 180 days
+'       81% initiated treatment within 1 year
+'       87% initiated treatment within 2 years
+'
+'
+' COX REGRESSION PARAMETERS USED:
+'
+' Age:
+'   HR = 0.98 per additional year
+' Older age was associated with a lower rate of treatment initiation.
+'
+' Sex:
+'   Male vs Female HR = 0.91
+' Female is therefore treated as the reference category in this function.
+'
+' HbA1c:
+'   HbA1c >=7.5% vs <7.5%
+'   HR = 2.44
+' Elevated HbA1c was the strongest predictor of treatment initiation.
+'
+' Age x HbA1c interaction:
+'   HR = 1.015 per year
+'The original Cox model identified a significant interaction between age and
+' HbA1c >=7.5%. Therefore, when HbA1c is >=7.5%, both the main HbA1c effect
+' and the Age x HbA1c interaction are applied.
+'
+'
+' ABSOLUTE-RISK CALIBRATION:
+'
+' Cox regression provides relative hazards but the publication does not provide
+' an implementation-ready baseline survival function for direct use in the
+' simulation.
+'
+' Therefore, the absolute baseline hazard was calibrated using the reported
+' 1-year treatment initiation probability among patients with HbA1c >=7.5%.
+'
+' Reported:
+'
+'       P(Treatment by 1 year | HbA1c >=7.5%) = 0.81
+'
+' Calibration reference patient:
+'
+'       Age = 62.4 years
+'       Female
+'       HbA1c >=7.5%
+'
+' where 62.4 years is approximately the mean age of the study population.
+'
+'
+' The calibrated baseline hazard is:
+'
+'       -Ln(1 - 0.81)
+'       -------------------------
+'       2.44 * (1.015 ^ 62.4)
+'
+'       ~= 0.2688
+'
+' The value 0.2688 is therefore used directly in the function to avoid
+' recalculating the same constant every time the function is called.
+'
+'
+' COX MODEL IMPLEMENTATION:
+'
+' For HbA1c <7.5%:
+'
+'       HR = 0.98 ^ (Age - 62.4)
+'
+' For HbA1c >=7.5%:
+'
+'       HR = 0.98 ^ (Age - 62.4)
+'            * 2.44
+'            * 1.015 ^ Age
+'
+' For males, the resulting HR is additionally multiplied by:
+'
+'       0.91
+'
+'
+' The adjusted hazard is:
+'
+'       Adjusted Hazard = 0.2688 * HR
+'
+' and is converted to an annual probability using:
+'
+'       P = 1 - Exp(-Adjusted Hazard)
+'
+'
+' INPUTS:
+'
+' Age
+'   Current patient age in years.
+'
+' HbA1cPercent
+'   Current HbA1c expressed in percentage units.
+'   Example: 7.8 represents HbA1c = 7.8%.
+'
+' IsFemale
+'   True  = Female
+'   False = Male
+'
+'
+' OUTPUT:
+'
+' A probability between 0 and 1 representing the probability that a diagnosed,
+' currently pharmacologically untreated patient initiates antihyperglycaemic
+' treatment during an annual cycle.
+'
+'
+' MODEL USE:
+'
+' This function should ONLY be evaluated when:
+'
+'       DM_recognized = True
+'       AND
+'       DM_Treated = False
+'
+' Once DM_Treated becomes True, the function should no longer be evaluated
+' unless treatment discontinuation/re-initiation is explicitly modelled.
+'
+'
+' LIMITATION:
+'
+' The hazard ratios are based on the published Sinclair et al. Cox model,
+' whereas the absolute baseline hazard (0.2688) is calibrated from the
+' published 1-year treatment-initiation rate because an implementation-ready
+' Cox baseline survival function was not reported.
+'
+'===============================================================================
+
+Function AnnualDiabetesTreatmentProbability( _
+    Age As Single, _
+    HbA1c As Single, _
+    Female As Boolean) As Double
+
+    Dim HR As Double
+
+    'Age effect:
+    'HR = 0.98 per additional year.
+    'Age is centered at the approximate study mean age (62.4 years).
+    HR = 0.98 ^ (Age - 62.4)
+
+    'Sex effect:
+    'Female = reference category.
+    'Male vs female HR = 0.91.
+    If Not Female Then HR = HR * 0.91
+
+    'HbA1c effect:
+    'For HbA1c >=7.5%, apply:
+    '   Main HbA1c effect HR = 2.44
+    '   Age x HbA1c interaction HR = 1.015 per year
+    If HbA1c >= 7.5 Then _
+        HR = HR * 2.44 * (1.015 ^ Age)
+
+    'Convert the patient-specific annual hazard into an annual probability.
+    '
+    '0.2688 = calibrated baseline annual hazard derived from the reported
+    '81% 1-year treatment initiation among patients with HbA1c >=7.5%.
+    AnnualDiabetesTreatmentProbability = _
+        1 - Exp(-0.2688 * HR)
 
 End Function
